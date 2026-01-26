@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<BorderPane xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" 
+            fx:controller="com.qdc.lims.ui.controller.PatientRegistrationController"
+            prefWidth="550" prefHeight="620"
+            stylesheets="@/static/styles.css">
+    
+    <!-- Header -->
+    <top>
+        <VBox style="-fx-background-color: #3498db; -fx-padding: 15;">
+            <Label text="Patient Registration" style="-fx-font-size: 20; -fx-font-weight: bold; -fx-text-fill: white;"/>
+            <Label text="Register a new patient in the system" style="-fx-font-size: 11; -fx-text-fill: #ecf0f1;"/>
+        </VBox>
+    </top>
+    
+    <!-- Main Form -->
+    <center>
+        <VBox spacing="15" style="-fx-background-color: #f5f5f5; -fx-padding: 20;">
+                
+                <!-- Personal Information Section -->
+                <VBox spacing="10" style="-fx-background-color: white; -fx-padding: 15; -fx-background-radius: 8;">
+                    <Label text="Personal Information" style="-fx-font-size: 14; -fx-font-weight: bold; -fx-text-fill: #2c3e50;"/>
+                    <Separator/>
+                    
+                    <GridPane hgap="15" vgap="10">
+                        <!-- Full Name -->
+                        <Label text="Full Name *" GridPane.columnIndex="0" GridPane.rowIndex="0" style="-fx-font-weight: bold;"/>
+                        <TextField fx:id="fullNameField" promptText="Enter full name" GridPane.columnIndex="1" GridPane.rowIndex="0" prefWidth="300"/>
+                        
+                        <!-- CNIC -->
+                        <Label text="CNIC" GridPane.columnIndex="0" GridPane.rowIndex="1" style="-fx-font-weight: bold;"/>
+                        <TextField fx:id="cnicField" promptText="xxxxx-xxxxxxx-x (optional)" GridPane.columnIndex="1" GridPane.rowIndex="1" prefWidth="300"/>
+                        
+                        <!-- Age -->
+                        <Label text="Age *" GridPane.columnIndex="0" GridPane.rowIndex="2" style="-fx-font-weight: bold;"/>
+                        <Spinner fx:id="ageSpinner" editable="true" GridPane.columnIndex="1" GridPane.rowIndex="2" prefWidth="150">
+                            <valueFactory>
+                                <SpinnerValueFactory.IntegerSpinnerValueFactory min="0" max="150" initialValue="0"/>
+                            </valueFactory>
+                        </Spinner>
+                        
+                        <!-- Gender -->
+                        <Label text="Gender" GridPane.columnIndex="0" GridPane.rowIndex="3" style="-fx-font-weight: bold;"/>
+                        <HBox spacing="10" GridPane.columnIndex="1" GridPane.rowIndex="3">
+                            <RadioButton fx:id="maleRadio" text="Male">
+                                <toggleGroup>
+                                    <ToggleGroup fx:id="genderGroup"/>
+                                </toggleGroup>
+                            </RadioButton>
+                            <RadioButton fx:id="femaleRadio" text="Female" toggleGroup="$genderGroup"/>
+                            <RadioButton fx:id="otherRadio" text="Other" toggleGroup="$genderGroup"/>
+                        </HBox>
+                    </GridPane>
+                </VBox>
+                
+                <!-- Contact Information Section -->
+                <VBox spacing="10" style="-fx-background-color: white; -fx-padding: 15; -fx-background-radius: 8;">
+                    <Label text="Contact Information" style="-fx-font-size: 14; -fx-font-weight: bold; -fx-text-fill: #2c3e50;"/>
+                    <Separator/>
+                    
+                    <GridPane hgap="15" vgap="10">
+                        <!-- Mobile Number -->
+                        <Label text="Mobile Number" GridPane.columnIndex="0" GridPane.rowIndex="0" style="-fx-font-weight: bold;"/>
+                        <TextField fx:id="mobileField" promptText="03xx-xxxxxxx" GridPane.columnIndex="1" GridPane.rowIndex="0" prefWidth="300"/>
+                        
+                        <!-- City -->
+                        <Label text="City" GridPane.columnIndex="0" GridPane.rowIndex="1" style="-fx-font-weight: bold;"/>
+                        <TextField fx:id="cityField" promptText="Enter city or village" GridPane.columnIndex="1" GridPane.rowIndex="1" prefWidth="300"/>
+                    </GridPane>
+                </VBox>
+                
+                <!-- Error/Success Message -->
+                <Label fx:id="messageLabel" wrapText="true" style="-fx-font-size: 12;"/>
+                
+                <!-- Keyboard Shortcut Hint -->
+                <Label text="💡 Tip: Press Enter to register, or use Tab to navigate between fields" 
+                       style="-fx-font-size: 11; -fx-text-fill: #7f8c8d; -fx-font-style: italic;"
+                       wrapText="true"/>
+                
+                <!-- Buttons -->
+                <HBox spacing="15" alignment="CENTER">
+                    <Button text="Register Patient" onAction="#handleRegister" 
+                            styleClass="btn-success"
+                            prefWidth="160"/>
+                    <Button text="Clear Form" onAction="#handleClear" 
+                            styleClass="btn-secondary"
+                            prefWidth="120"/>
+                    <Button text="Close" onAction="#handleClose" 
+                            styleClass="btn-danger"
+                            prefWidth="100"/>
+                </HBox>
+            </VBox>
+    </center>
+    
+</BorderPane>
