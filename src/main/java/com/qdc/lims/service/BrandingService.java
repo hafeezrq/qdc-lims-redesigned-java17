@@ -30,11 +30,11 @@ public class BrandingService {
     }
 
     /**
-     * @return the application name (for example, "QDC LIMS")
+     * @return the application name (for example, "LIMS")
      */
     public String getApplicationName() {
-        String appName = configService.getTrimmed("APP_NAME", "QDC LIMS");
-        return appName.isBlank() ? "QDC LIMS" : appName;
+        String appName = configService.getTrimmed("APP_NAME", "LIMS");
+        return appName.isBlank() ? "LIMS" : appName;
     }
 
     /**

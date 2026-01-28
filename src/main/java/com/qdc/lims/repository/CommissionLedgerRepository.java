@@ -3,6 +3,7 @@ package com.qdc.lims.repository;
 import com.qdc.lims.entity.CommissionLedger;
 import com.qdc.lims.entity.Doctor;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -76,8 +77,8 @@ public interface CommissionLedgerRepository extends JpaRepository<CommissionLedg
      * @param status   the payment status
      * @return total unpaid amount
      */
-    @Query("SELECT COALESCE(SUM(c.calculatedAmount), 0.0) FROM CommissionLedger c WHERE c.doctor.id = :doctorId AND c.status = :status")
-    Double getTotalCommissionByDoctorAndStatus(@Param("doctorId") Long doctorId, @Param("status") String status);
+    @Query("SELECT COALESCE(SUM(c.calculatedAmount), 0) FROM CommissionLedger c WHERE c.doctor.id = :doctorId AND c.status = :status")
+    BigDecimal getTotalCommissionByDoctorAndStatus(@Param("doctorId") Long doctorId, @Param("status") String status);
 
     /**
      * Calculates total commission for all doctors by status.
@@ -85,8 +86,8 @@ public interface CommissionLedgerRepository extends JpaRepository<CommissionLedg
      * @param status the payment status
      * @return total amount
      */
-    @Query("SELECT COALESCE(SUM(c.calculatedAmount), 0.0) FROM CommissionLedger c WHERE c.status = :status")
-    Double getTotalCommissionByStatus(@Param("status") String status);
+    @Query("SELECT COALESCE(SUM(c.calculatedAmount), 0) FROM CommissionLedger c WHERE c.status = :status")
+    BigDecimal getTotalCommissionByStatus(@Param("status") String status);
 
     /**
      * Counts commission records by status.

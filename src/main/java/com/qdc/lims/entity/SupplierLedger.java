@@ -2,6 +2,8 @@ package com.qdc.lims.entity;
 
 import jakarta.persistence.*;
 import lombok.Data;
+
+import java.math.BigDecimal;
 import java.time.LocalDate;
 
 /**
@@ -30,14 +32,17 @@ public class SupplierLedger {
     private LocalDate dueDate;
 
     // Money Logic
-    private Double billAmount = 0.0; // Money we OWE (Credit) - Increases Balance
-    private Double paidAmount = 0.0; // Money we PAID (Debit) - Decreases Balance
+    @Column(precision = 19, scale = 4)
+    private BigDecimal billAmount = BigDecimal.ZERO; // Money we OWE (Credit) - Increases Balance
+    @Column(precision = 19, scale = 4)
+    private BigDecimal paidAmount = BigDecimal.ZERO; // Money we PAID (Debit) - Decreases Balance
 
     // Add missing balanceDue field - not persisted, calculated/tracked?
     // Actually, for a ledger, usually balance is calculated on the fly or
     // snapshotted.
     // But TestDataInitializer tries to set it. Let's add it.
-    private Double balanceDue = 0.0;
+    @Column(precision = 19, scale = 4)
+    private BigDecimal balanceDue = BigDecimal.ZERO;
 
     // Add missing setRemarks method (mapped to description or separate?)
     // TestDataInitializer calls setRemarks. Let's add a separate remarks field.

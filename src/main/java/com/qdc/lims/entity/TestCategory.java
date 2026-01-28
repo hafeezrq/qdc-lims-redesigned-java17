@@ -2,6 +2,10 @@ package com.qdc.lims.entity;
 
 import jakarta.persistence.*;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
+
+import java.util.List;
 
 /**
  * Legacy/alternate test category entity. The current UI primarily uses
@@ -9,7 +13,9 @@ import lombok.Data;
  * migration scripts.
  */
 @Entity
-@Table(name = "test_categories")
+@Table(name = "test_categories", uniqueConstraints = {
+        @UniqueConstraint(columnNames = { "name", "department_id" })
+})
 @Data
 public class TestCategory {
 
@@ -23,8 +29,17 @@ public class TestCategory {
     /**
      * Unique category name.
      */
-    @Column(nullable = false, unique = true)
+    @Column(nullable = false)
     private String name;
+
+    /**
+     * Owning department for the category.
+     */
+    @ManyToOne
+    @JoinColumn(name = "department_id")
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
+    private Department department;
 
     /**
      * Optional category description.
@@ -36,4 +51,12 @@ public class TestCategory {
      */
     @Column(name = "is_active")
     private boolean active = true;
+
+    /**
+     * Tests assigned to this category.
+     */
+    @OneToMany(mappedBy = "category")
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
+    private List<TestDefinition> testDefinitions;
 }

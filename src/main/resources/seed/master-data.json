@@ -1,0 +1,1470 @@
+{
+  "departments": [
+    {
+      "name": "Hematology",
+      "code": "HEM",
+      "active": true
+    },
+    {
+      "name": "Biochemistry",
+      "code": "BIO",
+      "active": true
+    },
+    {
+      "name": "Serology",
+      "code": "SER",
+      "active": true
+    },
+    {
+      "name": "Thyroid",
+      "code": "THY",
+      "active": true
+    },
+    {
+      "name": "Urine",
+      "code": "URI",
+      "active": true
+    },
+    {
+      "name": "Microbiology",
+      "code": "MIC",
+      "active": true
+    }
+  ],
+  "categories": [
+    {
+      "name": "CBC / Hemogram",
+      "department": "Hematology",
+      "description": "Complete blood count analytes",
+      "active": true
+    },
+    {
+      "name": "Differential (Percent)",
+      "department": "Hematology",
+      "description": "WBC differential percentages",
+      "active": true
+    },
+    {
+      "name": "Differential (Absolute)",
+      "department": "Hematology",
+      "description": "WBC differential absolute counts",
+      "active": true
+    },
+    {
+      "name": "Platelets",
+      "department": "Hematology",
+      "description": "Platelet count",
+      "active": true
+    },
+    {
+      "name": "ESR",
+      "department": "Hematology",
+      "description": "Erythrocyte sedimentation rate",
+      "active": true
+    },
+    {
+      "name": "Blood Grouping",
+      "department": "Hematology",
+      "description": "ABO/Rh",
+      "active": true
+    },
+    {
+      "name": "Glucose",
+      "department": "Biochemistry",
+      "description": "Glucose metabolism",
+      "active": true
+    },
+    {
+      "name": "Renal Function",
+      "department": "Biochemistry",
+      "description": "Renal function tests",
+      "active": true
+    },
+    {
+      "name": "Liver Function",
+      "department": "Biochemistry",
+      "description": "Liver enzymes and bilirubin",
+      "active": true
+    },
+    {
+      "name": "Lipids",
+      "department": "Biochemistry",
+      "description": "Lipid profile",
+      "active": true
+    },
+    {
+      "name": "Proteins",
+      "department": "Biochemistry",
+      "description": "Total protein and albumin",
+      "active": true
+    },
+    {
+      "name": "Electrolytes",
+      "department": "Biochemistry",
+      "description": "Electrolytes",
+      "active": true
+    },
+    {
+      "name": "Hepatitis",
+      "department": "Serology",
+      "description": "Hepatitis screening",
+      "active": true
+    },
+    {
+      "name": "Infectious",
+      "department": "Serology",
+      "description": "General infectious screening",
+      "active": true
+    },
+    {
+      "name": "Dengue",
+      "department": "Serology",
+      "description": "Dengue screening",
+      "active": true
+    },
+    {
+      "name": "Typhoid",
+      "department": "Serology",
+      "description": "Typhoid screening",
+      "active": true
+    },
+    {
+      "name": "Thyroid Function",
+      "department": "Thyroid",
+      "description": "Thyroid hormones",
+      "active": true
+    },
+    {
+      "name": "Urinalysis",
+      "department": "Urine",
+      "description": "Routine urinalysis",
+      "active": true
+    },
+    {
+      "name": "Pregnancy",
+      "department": "Urine",
+      "description": "Pregnancy testing",
+      "active": true
+    },
+    {
+      "name": "Culture & Sensitivity",
+      "department": "Microbiology",
+      "description": "Cultures",
+      "active": true
+    }
+  ],
+  "inventory": [
+    {
+      "name": "Purple Top Tube (EDTA)",
+      "unit": "pcs",
+      "currentStock": 500,
+      "minThreshold": 50,
+      "averageCost": 0,
+      "active": true
+    },
+    {
+      "name": "Glucose Strip",
+      "unit": "pcs",
+      "currentStock": 200,
+      "minThreshold": 20,
+      "averageCost": 0,
+      "active": true
+    },
+    {
+      "name": "Alcohol Swab",
+      "unit": "pcs",
+      "currentStock": 1000,
+      "minThreshold": 100,
+      "averageCost": 0,
+      "active": true
+    }
+  ],
+  "tests": [
+    {
+      "name": "Complete Blood Count (CBC)",
+      "shortCode": "CBC",
+      "department": "Hematology",
+      "category": "CBC / Hemogram",
+      "unit": null,
+      "price": 650,
+      "minRange": null,
+      "maxRange": null,
+      "active": true
+    },
+    {
+      "name": "White Blood Cell Count",
+      "shortCode": "WBC",
+      "department": "Hematology",
+      "category": "CBC / Hemogram",
+      "unit": "10^9/L",
+      "price": 150,
+      "minRange": null,
+      "maxRange": null,
+      "active": true
+    },
+    {
+      "name": "Red Blood Cell Count",
+      "shortCode": "RBC",
+      "department": "Hematology",
+      "category": "CBC / Hemogram",
+      "unit": "10^12/L",
+      "price": 150,
+      "minRange": null,
+      "maxRange": null,
+      "active": true
+    },
+    {
+      "name": "Hemoglobin",
+      "shortCode": "HB",
+      "department": "Hematology",
+      "category": "CBC / Hemogram",
+      "unit": "g/L",
+      "price": 150,
+      "minRange": null,
+      "maxRange": null,
+      "active": true
+    },
+    {
+      "name": "Hematocrit (PCV)",
+      "shortCode": "HCT",
+      "department": "Hematology",
+      "category": "CBC / Hemogram",
+      "unit": "L/L",
+      "price": 150,
+      "minRange": null,
+      "maxRange": null,
+      "active": true
+    },
+    {
+      "name": "MCV",
+      "shortCode": "MCV",
+      "department": "Hematology",
+      "category": "CBC / Hemogram",
+      "unit": "fL",
+      "price": 150,
+      "minRange": null,
+      "maxRange": null,
+      "active": true
+    },
+    {
+      "name": "MCH",
+      "shortCode": "MCH",
+      "department": "Hematology",
+      "category": "CBC / Hemogram",
+      "unit": "pg",
+      "price": 150,
+      "minRange": null,
+      "maxRange": null,
+      "active": true
+    },
+    {
+      "name": "MCHC",
+      "shortCode": "MCHC",
+      "department": "Hematology",
+      "category": "CBC / Hemogram",
+      "unit": "g/L",
+      "price": 150,
+      "minRange": null,
+      "maxRange": null,
+      "active": true
+    },
+    {
+      "name": "RDW-CV",
+      "shortCode": "RDW",
+      "department": "Hematology",
+      "category": "CBC / Hemogram",
+      "unit": "%",
+      "price": 150,
+      "minRange": null,
+      "maxRange": null,
+      "active": true
+    },
+    {
+      "name": "Neutrophils %",
+      "shortCode": "NEUTP",
+      "department": "Hematology",
+      "category": "Differential (Percent)",
+      "unit": "%",
+      "price": 120,
+      "minRange": null,
+      "maxRange": null,
+      "active": true
+    },
+    {
+      "name": "Lymphocytes %",
+      "shortCode": "LYMPHP",
+      "department": "Hematology",
+      "category": "Differential (Percent)",
+      "unit": "%",
+      "price": 120,
+      "minRange": null,
+      "maxRange": null,
+      "active": true
+    },
+    {
+      "name": "Monocytes %",
+      "shortCode": "MONOP",
+      "department": "Hematology",
+      "category": "Differential (Percent)",
+      "unit": "%",
+      "price": 120,
+      "minRange": null,
+      "maxRange": null,
+      "active": true
+    },
+    {
+      "name": "Eosinophils %",
+      "shortCode": "EOSP",
+      "department": "Hematology",
+      "category": "Differential (Percent)",
+      "unit": "%",
+      "price": 120,
+      "minRange": null,
+      "maxRange": null,
+      "active": true
+    },
+    {
+      "name": "Basophils %",
+      "shortCode": "BASOP",
+      "department": "Hematology",
+      "category": "Differential (Percent)",
+      "unit": "%",
+      "price": 120,
+      "minRange": null,
+      "maxRange": null,
+      "active": true
+    },
+    {
+      "name": "Neutrophils (Absolute)",
+      "shortCode": "NEUT",
+      "department": "Hematology",
+      "category": "Differential (Absolute)",
+      "unit": "10^9/L",
+      "price": 120,
+      "minRange": null,
+      "maxRange": null,
+      "active": true
+    },
+    {
+      "name": "Lymphocytes (Absolute)",
+      "shortCode": "LYMPH",
+      "department": "Hematology",
+      "category": "Differential (Absolute)",
+      "unit": "10^9/L",
+      "price": 120,
+      "minRange": null,
+      "maxRange": null,
+      "active": true
+    },
+    {
+      "name": "Monocytes (Absolute)",
+      "shortCode": "MONO",
+      "department": "Hematology",
+      "category": "Differential (Absolute)",
+      "unit": "10^9/L",
+      "price": 120,
+      "minRange": null,
+      "maxRange": null,
+      "active": true
+    },
+    {
+      "name": "Eosinophils (Absolute)",
+      "shortCode": "EOS",
+      "department": "Hematology",
+      "category": "Differential (Absolute)",
+      "unit": "10^9/L",
+      "price": 120,
+      "minRange": null,
+      "maxRange": null,
+      "active": true
+    },
+    {
+      "name": "Basophils (Absolute)",
+      "shortCode": "BASO",
+      "department": "Hematology",
+      "category": "Differential (Absolute)",
+      "unit": "10^9/L",
+      "price": 120,
+      "minRange": null,
+      "maxRange": null,
+      "active": true
+    },
+    {
+      "name": "Platelet Count",
+      "shortCode": "PLT",
+      "department": "Hematology",
+      "category": "Platelets",
+      "unit": "10^9/L",
+      "price": 200,
+      "minRange": null,
+      "maxRange": null,
+      "active": true
+    },
+    {
+      "name": "ESR (Erythrocyte Sedimentation Rate)",
+      "shortCode": "ESR",
+      "department": "Hematology",
+      "category": "ESR",
+      "unit": "mm/h",
+      "price": 200,
+      "minRange": null,
+      "maxRange": null,
+      "active": true
+    },
+    {
+      "name": "Blood Group & Rh Factor",
+      "shortCode": "BGRH",
+      "department": "Hematology",
+      "category": "Blood Grouping",
+      "unit": null,
+      "price": 250,
+      "minRange": null,
+      "maxRange": null,
+      "active": true
+    },
+    {
+      "name": "Fasting Plasma Glucose",
+      "shortCode": "GLU-F",
+      "department": "Biochemistry",
+      "category": "Glucose",
+      "unit": "mmol/L",
+      "price": 150,
+      "minRange": null,
+      "maxRange": null,
+      "active": true
+    },
+    {
+      "name": "Random Glucose",
+      "shortCode": "GLU-R",
+      "department": "Biochemistry",
+      "category": "Glucose",
+      "unit": "mmol/L",
+      "price": 150,
+      "minRange": null,
+      "maxRange": null,
+      "active": true
+    },
+    {
+      "name": "Urea",
+      "shortCode": "UREA",
+      "department": "Biochemistry",
+      "category": "Renal Function",
+      "unit": "mmol/L",
+      "price": 250,
+      "minRange": null,
+      "maxRange": null,
+      "active": true
+    },
+    {
+      "name": "Creatinine",
+      "shortCode": "CREAT",
+      "department": "Biochemistry",
+      "category": "Renal Function",
+      "unit": "umol/L",
+      "price": 250,
+      "minRange": null,
+      "maxRange": null,
+      "active": true
+    },
+    {
+      "name": "Uric Acid",
+      "shortCode": "URIC",
+      "department": "Biochemistry",
+      "category": "Renal Function",
+      "unit": "umol/L",
+      "price": 250,
+      "minRange": null,
+      "maxRange": null,
+      "active": true
+    },
+    {
+      "name": "Total Cholesterol",
+      "shortCode": "CHOL",
+      "department": "Biochemistry",
+      "category": "Lipids",
+      "unit": "mmol/L",
+      "price": 250,
+      "minRange": null,
+      "maxRange": null,
+      "active": true
+    },
+    {
+      "name": "Triglycerides",
+      "shortCode": "TRIG",
+      "department": "Biochemistry",
+      "category": "Lipids",
+      "unit": "mmol/L",
+      "price": 250,
+      "minRange": null,
+      "maxRange": null,
+      "active": true
+    },
+    {
+      "name": "HDL Cholesterol",
+      "shortCode": "HDL",
+      "department": "Biochemistry",
+      "category": "Lipids",
+      "unit": "mmol/L",
+      "price": 250,
+      "minRange": null,
+      "maxRange": null,
+      "active": true
+    },
+    {
+      "name": "LDL Cholesterol",
+      "shortCode": "LDL",
+      "department": "Biochemistry",
+      "category": "Lipids",
+      "unit": "mmol/L",
+      "price": 250,
+      "minRange": null,
+      "maxRange": null,
+      "active": true
+    },
+    {
+      "name": "Total Bilirubin",
+      "shortCode": "TBIL",
+      "department": "Biochemistry",
+      "category": "Liver Function",
+      "unit": "umol/L",
+      "price": 250,
+      "minRange": null,
+      "maxRange": null,
+      "active": true
+    },
+    {
+      "name": "ALT (SGPT)",
+      "shortCode": "ALT",
+      "department": "Biochemistry",
+      "category": "Liver Function",
+      "unit": "U/L",
+      "price": 250,
+      "minRange": null,
+      "maxRange": null,
+      "active": true
+    },
+    {
+      "name": "AST (SGOT)",
+      "shortCode": "AST",
+      "department": "Biochemistry",
+      "category": "Liver Function",
+      "unit": "U/L",
+      "price": 250,
+      "minRange": null,
+      "maxRange": null,
+      "active": true
+    },
+    {
+      "name": "Alkaline Phosphatase",
+      "shortCode": "ALP",
+      "department": "Biochemistry",
+      "category": "Liver Function",
+      "unit": "U/L",
+      "price": 250,
+      "minRange": null,
+      "maxRange": null,
+      "active": true
+    },
+    {
+      "name": "Total Protein",
+      "shortCode": "TP",
+      "department": "Biochemistry",
+      "category": "Proteins",
+      "unit": "g/L",
+      "price": 250,
+      "minRange": null,
+      "maxRange": null,
+      "active": true
+    },
+    {
+      "name": "Albumin",
+      "shortCode": "ALB",
+      "department": "Biochemistry",
+      "category": "Proteins",
+      "unit": "g/L",
+      "price": 250,
+      "minRange": null,
+      "maxRange": null,
+      "active": true
+    },
+    {
+      "name": "Sodium",
+      "shortCode": "NA",
+      "department": "Biochemistry",
+      "category": "Electrolytes",
+      "unit": "mmol/L",
+      "price": 250,
+      "minRange": null,
+      "maxRange": null,
+      "active": true
+    },
+    {
+      "name": "Potassium",
+      "shortCode": "K",
+      "department": "Biochemistry",
+      "category": "Electrolytes",
+      "unit": "mmol/L",
+      "price": 250,
+      "minRange": null,
+      "maxRange": null,
+      "active": true
+    },
+    {
+      "name": "Chloride",
+      "shortCode": "CL",
+      "department": "Biochemistry",
+      "category": "Electrolytes",
+      "unit": "mmol/L",
+      "price": 250,
+      "minRange": null,
+      "maxRange": null,
+      "active": true
+    },
+    {
+      "name": "Calcium",
+      "shortCode": "CA",
+      "department": "Biochemistry",
+      "category": "Electrolytes",
+      "unit": "mmol/L",
+      "price": 250,
+      "minRange": null,
+      "maxRange": null,
+      "active": true
+    },
+    {
+      "name": "TSH",
+      "shortCode": "TSH",
+      "department": "Thyroid",
+      "category": "Thyroid Function",
+      "unit": "mIU/L",
+      "price": 500,
+      "minRange": null,
+      "maxRange": null,
+      "active": true
+    },
+    {
+      "name": "Free T4",
+      "shortCode": "FT4",
+      "department": "Thyroid",
+      "category": "Thyroid Function",
+      "unit": "pmol/L",
+      "price": 500,
+      "minRange": null,
+      "maxRange": null,
+      "active": true
+    },
+    {
+      "name": "Free T3",
+      "shortCode": "FT3",
+      "department": "Thyroid",
+      "category": "Thyroid Function",
+      "unit": "pmol/L",
+      "price": 500,
+      "minRange": null,
+      "maxRange": null,
+      "active": true
+    },
+    {
+      "name": "Total T4",
+      "shortCode": "T4",
+      "department": "Thyroid",
+      "category": "Thyroid Function",
+      "unit": "nmol/L",
+      "price": 400,
+      "minRange": null,
+      "maxRange": null,
+      "active": true
+    },
+    {
+      "name": "Total T3",
+      "shortCode": "T3",
+      "department": "Thyroid",
+      "category": "Thyroid Function",
+      "unit": "nmol/L",
+      "price": 400,
+      "minRange": null,
+      "maxRange": null,
+      "active": true
+    },
+    {
+      "name": "HBsAg",
+      "shortCode": "HBSAG",
+      "department": "Serology",
+      "category": "Hepatitis",
+      "unit": null,
+      "price": 400,
+      "minRange": null,
+      "maxRange": null,
+      "active": true
+    },
+    {
+      "name": "Anti-HCV",
+      "shortCode": "HCV",
+      "department": "Serology",
+      "category": "Hepatitis",
+      "unit": null,
+      "price": 500,
+      "minRange": null,
+      "maxRange": null,
+      "active": true
+    },
+    {
+      "name": "HIV I & II",
+      "shortCode": "HIV",
+      "department": "Serology",
+      "category": "Infectious",
+      "unit": null,
+      "price": 500,
+      "minRange": null,
+      "maxRange": null,
+      "active": true
+    },
+    {
+      "name": "VDRL",
+      "shortCode": "VDRL",
+      "department": "Serology",
+      "category": "Infectious",
+      "unit": null,
+      "price": 300,
+      "minRange": null,
+      "maxRange": null,
+      "active": true
+    },
+    {
+      "name": "Typhidot",
+      "shortCode": "TYPHI",
+      "department": "Serology",
+      "category": "Typhoid",
+      "unit": null,
+      "price": 600,
+      "minRange": null,
+      "maxRange": null,
+      "active": true
+    },
+    {
+      "name": "Dengue NS1",
+      "shortCode": "DEN-NS1",
+      "department": "Serology",
+      "category": "Dengue",
+      "unit": null,
+      "price": 800,
+      "minRange": null,
+      "maxRange": null,
+      "active": true
+    },
+    {
+      "name": "Dengue IgM",
+      "shortCode": "DEN-IGM",
+      "department": "Serology",
+      "category": "Dengue",
+      "unit": null,
+      "price": 800,
+      "minRange": null,
+      "maxRange": null,
+      "active": true
+    },
+    {
+      "name": "Dengue IgG",
+      "shortCode": "DEN-IGG",
+      "department": "Serology",
+      "category": "Dengue",
+      "unit": null,
+      "price": 800,
+      "minRange": null,
+      "maxRange": null,
+      "active": true
+    },
+    {
+      "name": "Urine Routine",
+      "shortCode": "URINE-RE",
+      "department": "Urine",
+      "category": "Urinalysis",
+      "unit": null,
+      "price": 200,
+      "minRange": null,
+      "maxRange": null,
+      "active": true
+    },
+    {
+      "name": "Urine Culture",
+      "shortCode": "URINE-CS",
+      "department": "Urine",
+      "category": "Urinalysis",
+      "unit": null,
+      "price": 800,
+      "minRange": null,
+      "maxRange": null,
+      "active": true
+    },
+    {
+      "name": "Urine Pregnancy (UPT)",
+      "shortCode": "UPT",
+      "department": "Urine",
+      "category": "Pregnancy",
+      "unit": null,
+      "price": 200,
+      "minRange": null,
+      "maxRange": null,
+      "active": true
+    },
+    {
+      "name": "Blood Culture",
+      "shortCode": "BLD-CS",
+      "department": "Microbiology",
+      "category": "Culture & Sensitivity",
+      "unit": null,
+      "price": 1200,
+      "minRange": null,
+      "maxRange": null,
+      "active": true
+    }
+  ],
+  "ranges": [
+    {
+      "testShortCode": "RBC",
+      "gender": "Female",
+      "minAge": 18,
+      "maxAge": 120,
+      "minVal": 3.61,
+      "maxVal": 5.2
+    },
+    {
+      "testShortCode": "RBC",
+      "gender": "Male",
+      "minAge": 18,
+      "maxAge": 120,
+      "minVal": 4.25,
+      "maxVal": 6.02
+    },
+    {
+      "testShortCode": "HB",
+      "gender": "Female",
+      "minAge": 18,
+      "maxAge": 120,
+      "minVal": 110,
+      "maxVal": 145
+    },
+    {
+      "testShortCode": "HB",
+      "gender": "Male",
+      "minAge": 18,
+      "maxAge": 120,
+      "minVal": 123,
+      "maxVal": 166
+    },
+    {
+      "testShortCode": "HCT",
+      "gender": "Female",
+      "minAge": 18,
+      "maxAge": 120,
+      "minVal": 0.345,
+      "maxVal": 0.454
+    },
+    {
+      "testShortCode": "HCT",
+      "gender": "Male",
+      "minAge": 18,
+      "maxAge": 120,
+      "minVal": 0.384,
+      "maxVal": 0.507
+    },
+    {
+      "testShortCode": "MCV",
+      "gender": "Female",
+      "minAge": 18,
+      "maxAge": 120,
+      "minVal": 78.1,
+      "maxVal": 95.3
+    },
+    {
+      "testShortCode": "MCV",
+      "gender": "Male",
+      "minAge": 18,
+      "maxAge": 120,
+      "minVal": 78.7,
+      "maxVal": 96.3
+    },
+    {
+      "testShortCode": "MCH",
+      "gender": "Female",
+      "minAge": 18,
+      "maxAge": 120,
+      "minVal": 25.3,
+      "maxVal": 31.7
+    },
+    {
+      "testShortCode": "MCH",
+      "gender": "Male",
+      "minAge": 18,
+      "maxAge": 120,
+      "minVal": 25.1,
+      "maxVal": 31.6
+    },
+    {
+      "testShortCode": "MCHC",
+      "gender": "Female",
+      "minAge": 18,
+      "maxAge": 120,
+      "minVal": 303,
+      "maxVal": 344
+    },
+    {
+      "testShortCode": "MCHC",
+      "gender": "Male",
+      "minAge": 18,
+      "maxAge": 120,
+      "minVal": 300,
+      "maxVal": 355
+    },
+    {
+      "testShortCode": "RDW",
+      "gender": "Female",
+      "minAge": 18,
+      "maxAge": 120,
+      "minVal": 12.1,
+      "maxVal": 16.9
+    },
+    {
+      "testShortCode": "RDW",
+      "gender": "Male",
+      "minAge": 18,
+      "maxAge": 120,
+      "minVal": 12.0,
+      "maxVal": 16.0
+    },
+    {
+      "testShortCode": "WBC",
+      "gender": "Female",
+      "minAge": 18,
+      "maxAge": 120,
+      "minVal": 4.6,
+      "maxVal": 10.8
+    },
+    {
+      "testShortCode": "WBC",
+      "gender": "Male",
+      "minAge": 18,
+      "maxAge": 120,
+      "minVal": 4.88,
+      "maxVal": 11.38
+    },
+    {
+      "testShortCode": "NEUT",
+      "gender": "Both",
+      "minAge": 18,
+      "maxAge": 120,
+      "minVal": 1.81,
+      "maxVal": 7.59
+    },
+    {
+      "testShortCode": "LYMPH",
+      "gender": "Both",
+      "minAge": 18,
+      "maxAge": 120,
+      "minVal": 1.1,
+      "maxVal": 4.75
+    },
+    {
+      "testShortCode": "MONO",
+      "gender": "Both",
+      "minAge": 18,
+      "maxAge": 120,
+      "minVal": 0.2,
+      "maxVal": 1.0
+    },
+    {
+      "testShortCode": "EOS",
+      "gender": "Both",
+      "minAge": 18,
+      "maxAge": 120,
+      "minVal": 0.02,
+      "maxVal": 0.6
+    },
+    {
+      "testShortCode": "BASO",
+      "gender": "Both",
+      "minAge": 18,
+      "maxAge": 120,
+      "minVal": 0.01,
+      "maxVal": 0.09
+    },
+    {
+      "testShortCode": "NEUTP",
+      "gender": "Both",
+      "minAge": 18,
+      "maxAge": 120,
+      "minVal": 34.9,
+      "maxVal": 76.2
+    },
+    {
+      "testShortCode": "LYMPHP",
+      "gender": "Both",
+      "minAge": 18,
+      "maxAge": 120,
+      "minVal": 17.5,
+      "maxVal": 45.0
+    },
+    {
+      "testShortCode": "MONOP",
+      "gender": "Both",
+      "minAge": 18,
+      "maxAge": 120,
+      "minVal": 3.9,
+      "maxVal": 10.0
+    },
+    {
+      "testShortCode": "EOSP",
+      "gender": "Both",
+      "minAge": 18,
+      "maxAge": 120,
+      "minVal": 0.3,
+      "maxVal": 7.4
+    },
+    {
+      "testShortCode": "BASOP",
+      "gender": "Both",
+      "minAge": 18,
+      "maxAge": 120,
+      "minVal": 0.1,
+      "maxVal": 1.0
+    },
+    {
+      "testShortCode": "PLT",
+      "gender": "Both",
+      "minAge": 18,
+      "maxAge": 120,
+      "minVal": 154,
+      "maxVal": 433
+    },
+    {
+      "testShortCode": "ESR",
+      "gender": "Both",
+      "minAge": 18,
+      "maxAge": 120,
+      "minVal": 2,
+      "maxVal": 15
+    },
+    {
+      "testShortCode": "WBC",
+      "gender": "Both",
+      "minAge": 1,
+      "maxAge": 1,
+      "minVal": 6,
+      "maxVal": 16
+    },
+    {
+      "testShortCode": "RBC",
+      "gender": "Both",
+      "minAge": 1,
+      "maxAge": 1,
+      "minVal": 3.9,
+      "maxVal": 5.1
+    },
+    {
+      "testShortCode": "HB",
+      "gender": "Both",
+      "minAge": 1,
+      "maxAge": 1,
+      "minVal": 111,
+      "maxVal": 141
+    },
+    {
+      "testShortCode": "HCT",
+      "gender": "Both",
+      "minAge": 1,
+      "maxAge": 1,
+      "minVal": 0.3,
+      "maxVal": 0.38
+    },
+    {
+      "testShortCode": "MCV",
+      "gender": "Both",
+      "minAge": 1,
+      "maxAge": 1,
+      "minVal": 72,
+      "maxVal": 84
+    },
+    {
+      "testShortCode": "MCH",
+      "gender": "Both",
+      "minAge": 1,
+      "maxAge": 1,
+      "minVal": 25,
+      "maxVal": 29
+    },
+    {
+      "testShortCode": "MCHC",
+      "gender": "Both",
+      "minAge": 1,
+      "maxAge": 1,
+      "minVal": 320,
+      "maxVal": 360
+    },
+    {
+      "testShortCode": "PLT",
+      "gender": "Both",
+      "minAge": 1,
+      "maxAge": 1,
+      "minVal": 200,
+      "maxVal": 550
+    },
+    {
+      "testShortCode": "NEUT",
+      "gender": "Both",
+      "minAge": 1,
+      "maxAge": 1,
+      "minVal": 1.0,
+      "maxVal": 7.0
+    },
+    {
+      "testShortCode": "LYMPH",
+      "gender": "Both",
+      "minAge": 1,
+      "maxAge": 1,
+      "minVal": 3.5,
+      "maxVal": 11.0
+    },
+    {
+      "testShortCode": "MONO",
+      "gender": "Both",
+      "minAge": 1,
+      "maxAge": 1,
+      "minVal": 0.2,
+      "maxVal": 1.0
+    },
+    {
+      "testShortCode": "EOS",
+      "gender": "Both",
+      "minAge": 1,
+      "maxAge": 1,
+      "minVal": 0.1,
+      "maxVal": 1.0
+    },
+    {
+      "testShortCode": "WBC",
+      "gender": "Both",
+      "minAge": 2,
+      "maxAge": 6,
+      "minVal": 5,
+      "maxVal": 15
+    },
+    {
+      "testShortCode": "RBC",
+      "gender": "Both",
+      "minAge": 2,
+      "maxAge": 6,
+      "minVal": 4.0,
+      "maxVal": 5.2
+    },
+    {
+      "testShortCode": "HB",
+      "gender": "Both",
+      "minAge": 2,
+      "maxAge": 6,
+      "minVal": 110,
+      "maxVal": 140
+    },
+    {
+      "testShortCode": "HCT",
+      "gender": "Both",
+      "minAge": 2,
+      "maxAge": 6,
+      "minVal": 0.34,
+      "maxVal": 0.4
+    },
+    {
+      "testShortCode": "MCV",
+      "gender": "Both",
+      "minAge": 2,
+      "maxAge": 6,
+      "minVal": 75,
+      "maxVal": 87
+    },
+    {
+      "testShortCode": "MCH",
+      "gender": "Both",
+      "minAge": 2,
+      "maxAge": 6,
+      "minVal": 24,
+      "maxVal": 30
+    },
+    {
+      "testShortCode": "MCHC",
+      "gender": "Both",
+      "minAge": 2,
+      "maxAge": 6,
+      "minVal": 310,
+      "maxVal": 370
+    },
+    {
+      "testShortCode": "PLT",
+      "gender": "Both",
+      "minAge": 2,
+      "maxAge": 6,
+      "minVal": 200,
+      "maxVal": 490
+    },
+    {
+      "testShortCode": "NEUT",
+      "gender": "Both",
+      "minAge": 2,
+      "maxAge": 6,
+      "minVal": 1.5,
+      "maxVal": 8.0
+    },
+    {
+      "testShortCode": "LYMPH",
+      "gender": "Both",
+      "minAge": 2,
+      "maxAge": 6,
+      "minVal": 6.0,
+      "maxVal": 9.0
+    },
+    {
+      "testShortCode": "MONO",
+      "gender": "Both",
+      "minAge": 2,
+      "maxAge": 6,
+      "minVal": 0.2,
+      "maxVal": 1.0
+    },
+    {
+      "testShortCode": "EOS",
+      "gender": "Both",
+      "minAge": 2,
+      "maxAge": 6,
+      "minVal": 0.1,
+      "maxVal": 1.0
+    },
+    {
+      "testShortCode": "WBC",
+      "gender": "Both",
+      "minAge": 7,
+      "maxAge": 12,
+      "minVal": 5,
+      "maxVal": 13
+    },
+    {
+      "testShortCode": "RBC",
+      "gender": "Both",
+      "minAge": 7,
+      "maxAge": 12,
+      "minVal": 4.0,
+      "maxVal": 5.2
+    },
+    {
+      "testShortCode": "HB",
+      "gender": "Both",
+      "minAge": 7,
+      "maxAge": 12,
+      "minVal": 115,
+      "maxVal": 155
+    },
+    {
+      "testShortCode": "HCT",
+      "gender": "Both",
+      "minAge": 7,
+      "maxAge": 12,
+      "minVal": 0.35,
+      "maxVal": 0.45
+    },
+    {
+      "testShortCode": "MCV",
+      "gender": "Both",
+      "minAge": 7,
+      "maxAge": 12,
+      "minVal": 77,
+      "maxVal": 95
+    },
+    {
+      "testShortCode": "MCH",
+      "gender": "Both",
+      "minAge": 7,
+      "maxAge": 12,
+      "minVal": 25,
+      "maxVal": 33
+    },
+    {
+      "testShortCode": "MCHC",
+      "gender": "Both",
+      "minAge": 7,
+      "maxAge": 12,
+      "minVal": 310,
+      "maxVal": 370
+    },
+    {
+      "testShortCode": "PLT",
+      "gender": "Both",
+      "minAge": 7,
+      "maxAge": 12,
+      "minVal": 170,
+      "maxVal": 450
+    },
+    {
+      "testShortCode": "NEUT",
+      "gender": "Both",
+      "minAge": 7,
+      "maxAge": 12,
+      "minVal": 2.0,
+      "maxVal": 8.0
+    },
+    {
+      "testShortCode": "LYMPH",
+      "gender": "Both",
+      "minAge": 7,
+      "maxAge": 12,
+      "minVal": 1.0,
+      "maxVal": 5.0
+    },
+    {
+      "testShortCode": "MONO",
+      "gender": "Both",
+      "minAge": 7,
+      "maxAge": 12,
+      "minVal": 0.2,
+      "maxVal": 1.0
+    },
+    {
+      "testShortCode": "EOS",
+      "gender": "Both",
+      "minAge": 7,
+      "maxAge": 12,
+      "minVal": 0.1,
+      "maxVal": 1.0
+    },
+    {
+      "testShortCode": "GLU-F",
+      "gender": "Male",
+      "minAge": 18,
+      "maxAge": 120,
+      "minVal": 3.1,
+      "maxVal": 6.4
+    },
+    {
+      "testShortCode": "GLU-F",
+      "gender": "Female",
+      "minAge": 18,
+      "maxAge": 120,
+      "minVal": 3.3,
+      "maxVal": 6.4
+    },
+    {
+      "testShortCode": "UREA",
+      "gender": "Male",
+      "minAge": 18,
+      "maxAge": 120,
+      "minVal": 2.0,
+      "maxVal": 9.2
+    },
+    {
+      "testShortCode": "UREA",
+      "gender": "Female",
+      "minAge": 18,
+      "maxAge": 120,
+      "minVal": 2.2,
+      "maxVal": 7.2
+    },
+    {
+      "testShortCode": "CREAT",
+      "gender": "Male",
+      "minAge": 18,
+      "maxAge": 120,
+      "minVal": 35,
+      "maxVal": 133
+    },
+    {
+      "testShortCode": "CREAT",
+      "gender": "Female",
+      "minAge": 18,
+      "maxAge": 120,
+      "minVal": 27,
+      "maxVal": 115
+    },
+    {
+      "testShortCode": "URIC",
+      "gender": "Male",
+      "minAge": 18,
+      "maxAge": 120,
+      "minVal": 178,
+      "maxVal": 506
+    },
+    {
+      "testShortCode": "URIC",
+      "gender": "Female",
+      "minAge": 18,
+      "maxAge": 120,
+      "minVal": 119,
+      "maxVal": 434
+    },
+    {
+      "testShortCode": "CHOL",
+      "gender": "Both",
+      "minAge": 18,
+      "maxAge": 120,
+      "minVal": 3.2,
+      "maxVal": 6.6
+    },
+    {
+      "testShortCode": "TRIG",
+      "gender": "Both",
+      "minAge": 18,
+      "maxAge": 120,
+      "minVal": 0.6,
+      "maxVal": 2.3
+    },
+    {
+      "testShortCode": "TBIL",
+      "gender": "Both",
+      "minAge": 18,
+      "maxAge": 120,
+      "minVal": 5,
+      "maxVal": 18
+    },
+    {
+      "testShortCode": "TP",
+      "gender": "Both",
+      "minAge": 18,
+      "maxAge": 120,
+      "minVal": 57,
+      "maxVal": 83
+    },
+    {
+      "testShortCode": "ALT",
+      "gender": "Both",
+      "minAge": 18,
+      "maxAge": 120,
+      "minVal": 15,
+      "maxVal": 45
+    },
+    {
+      "testShortCode": "ALP",
+      "gender": "Both",
+      "minAge": 18,
+      "maxAge": 120,
+      "minVal": 185,
+      "maxVal": 620
+    }
+  ],
+  "recipes": [
+    {
+      "testShortCode": "CBC",
+      "itemName": "Purple Top Tube (EDTA)",
+      "quantity": 1
+    },
+    {
+      "testShortCode": "CBC",
+      "itemName": "Alcohol Swab",
+      "quantity": 1
+    },
+    {
+      "testShortCode": "GLU-F",
+      "itemName": "Glucose Strip",
+      "quantity": 1
+    },
+    {
+      "testShortCode": "GLU-F",
+      "itemName": "Alcohol Swab",
+      "quantity": 1
+    }
+  ]
+}

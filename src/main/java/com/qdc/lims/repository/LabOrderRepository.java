@@ -2,6 +2,7 @@ package com.qdc.lims.repository;
 
 import com.qdc.lims.entity.LabOrder;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -136,5 +137,5 @@ public interface LabOrderRepository extends JpaRepository<LabOrder, Long> {
      * @param minBalance the minimum balance (usually 0)
      * @return list of orders with unpaid balance
      */
-    List<LabOrder> findByBalanceDueGreaterThan(Double minBalance);
+    List<LabOrder> findByBalanceDueGreaterThan(BigDecimal minBalance);
 }

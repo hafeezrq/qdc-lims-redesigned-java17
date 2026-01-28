@@ -2,6 +2,8 @@ package com.qdc.lims.entity;
 
 import jakarta.persistence.*;
 import lombok.Data;
+
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 /**
@@ -32,8 +34,8 @@ public class Payment {
     @Column(nullable = false)
     private String description;
 
-    @Column(nullable = false)
-    private Double amount;
+    @Column(nullable = false, precision = 19, scale = 4)
+    private BigDecimal amount;
 
     // Rename or Alias paymentMode to match setPaymentMode usage
     private String paymentMethod; // "CASH", "BANK_TRANSFER", "CHEQUE"

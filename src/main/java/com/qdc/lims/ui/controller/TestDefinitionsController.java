@@ -1,6 +1,7 @@
 package com.qdc.lims.ui.controller;
 
 import com.qdc.lims.entity.Department;
+import com.qdc.lims.entity.TestCategory;
 import com.qdc.lims.entity.TestDefinition;
 import com.qdc.lims.service.TestDefinitionService;
 import javafx.beans.property.SimpleObjectProperty;
@@ -11,10 +12,15 @@ import javafx.geometry.Insets;
 import javafx.scene.control.*;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
+import javafx.scene.Parent;
+import javafx.scene.Scene;
 import javafx.stage.Stage;
+import javafx.util.StringConverter;
+import org.springframework.context.ApplicationContext;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import java.math.BigDecimal;
 import java.util.Optional;
 
 /**
@@ -35,7 +41,11 @@ public class TestDefinitionsController {
     @FXML
     private TableColumn<TestDefinition, String> colDepartment;
     @FXML
-    private TableColumn<TestDefinition, Double> colPrice;
+    private TableColumn<TestDefinition, String> colCategory;
+    @FXML
+    private TableColumn<TestDefinition, String> colUnit;
+    @FXML
+    private TableColumn<TestDefinition, BigDecimal> colPrice;
     @FXML
     private TableColumn<TestDefinition, Void> colActions;
     @FXML
@@ -43,6 +53,8 @@ public class TestDefinitionsController {
 
     @Autowired
     private TestDefinitionService testDefinitionService;
+    @Autowired
+    private ApplicationContext applicationContext;
 
     /**
      * Initializes table bindings and loads initial data.
@@ -57,6 +69,12 @@ public class TestDefinitionsController {
             Department dept = cellData.getValue().getDepartment();
             return new SimpleObjectProperty<>(dept != null ? dept.getName() : "");
         });
+        colCategory.setCellValueFactory(cellData -> {
+            TestCategory category = cellData.getValue().getCategory();
+            return new SimpleObjectProperty<>(category != null ? category.getName() : "");
+        });
+        colUnit.setCellValueFactory(cellData -> new SimpleObjectProperty<>(
+                cellData.getValue().getUnit() != null ? cellData.getValue().getUnit() : ""));
         setupActionsColumn();
         loadTests();
     }
@@ -82,12 +100,14 @@ public class TestDefinitionsController {
         colActions.setCellFactory(param -> new TableCell<>() {
             private final Button editBtn = new Button("Edit");
             private final Button deleteBtn = new Button("Delete");
-            private final HBox pane = new HBox(5, editBtn, deleteBtn);
+            private final Button rangesBtn = new Button("Ranges");
+            private final HBox pane = new HBox(5, editBtn, rangesBtn, deleteBtn);
 
             {
                 editBtn.setOnAction(event -> handleEdit(getTableView().getItems().get(getIndex())));
                 deleteBtn.setOnAction(event -> handleDelete(getTableView().getItems().get(getIndex())));
                 deleteBtn.setStyle("-fx-text-fill: red;");
+                rangesBtn.setOnAction(event -> handleManageRanges(getTableView().getItems().get(getIndex())));
             }
 
             @Override
@@ -100,6 +120,25 @@ public class TestDefinitionsController {
                 }
             }
         });
+    }
+
+    private void handleManageRanges(TestDefinition test) {
+        try {
+            var loader = new javafx.fxml.FXMLLoader(getClass().getResource("/fxml/reference_ranges.fxml"));
+            loader.setControllerFactory(applicationContext::getBean);
+            Parent root = loader.load();
+            ReferenceRangeController controller = loader.getController();
+            controller.setTestDefinition(test);
+
+            Stage stage = new Stage();
+            stage.setTitle("Reference Ranges - " + test.getTestName());
+            stage.setScene(new Scene(root));
+            stage.show();
+        } catch (Exception e) {
+            Alert error = new Alert(Alert.AlertType.ERROR);
+            error.setContentText("Could not open Reference Ranges: " + e.getMessage());
+            error.show();
+        }
     }
 
     /**
@@ -195,10 +234,48 @@ public class TestDefinitionsController {
 
         TextField name = new TextField(test.getTestName());
         TextField code = new TextField(test.getShortCode());
-        ComboBox<com.qdc.lims.entity.Department> deptCombo = new ComboBox<>();
+        ComboBox<Department> deptCombo = new ComboBox<>();
         deptCombo.setItems(FXCollections.observableArrayList(testDefinitionService.findAllDepartments()));
         deptCombo.setValue(test.getDepartment());
-        TextField price = new TextField(test.getPrice() != null ? test.getPrice().toString() : "");
+        deptCombo.setConverter(new StringConverter<>() {
+            @Override
+            public String toString(Department department) {
+                return department != null ? department.getName() : "";
+            }
+
+            @Override
+            public Department fromString(String string) {
+                return deptCombo.getItems().stream()
+                        .filter(dept -> dept.getName().equalsIgnoreCase(string))
+                        .findFirst()
+                        .orElse(null);
+            }
+        });
+        ComboBox<TestCategory> categoryCombo = new ComboBox<>();
+        categoryCombo.setEditable(true);
+        categoryCombo.setItems(FXCollections.observableArrayList(
+                testDefinitionService.findCategoriesByDepartment(test.getDepartment())));
+        categoryCombo.setValue(test.getCategory());
+        categoryCombo.setConverter(new StringConverter<>() {
+            @Override
+            public String toString(TestCategory category) {
+                return category != null ? category.getName() : "";
+            }
+
+            @Override
+            public TestCategory fromString(String string) {
+                return categoryCombo.getItems().stream()
+                        .filter(cat -> cat.getName().equalsIgnoreCase(string))
+                        .findFirst()
+                        .orElse(null);
+            }
+        });
+        deptCombo.valueProperty().addListener((obs, oldVal, newVal) -> {
+            categoryCombo.getItems().setAll(testDefinitionService.findCategoriesByDepartment(newVal));
+            categoryCombo.setValue(null);
+        });
+        TextField price = new TextField(test.getPrice() != null ? test.getPrice().toPlainString() : "");
+        TextField unit = new TextField(test.getUnit());
 
         grid.add(new Label("Test Name:"), 0, 0);
         grid.add(name, 1, 0);
@@ -206,8 +283,12 @@ public class TestDefinitionsController {
         grid.add(code, 1, 1);
         grid.add(new Label("Department:"), 0, 2);
         grid.add(deptCombo, 1, 2);
-        grid.add(new Label("Price:"), 0, 3);
-        grid.add(price, 1, 3);
+        grid.add(new Label("Category:"), 0, 3);
+        grid.add(categoryCombo, 1, 3);
+        grid.add(new Label("Unit:"), 0, 4);
+        grid.add(unit, 1, 4);
+        grid.add(new Label("Price:"), 0, 5);
+        grid.add(price, 1, 5);
 
         dialog.getDialogPane().setContent(grid);
 
@@ -215,7 +296,14 @@ public class TestDefinitionsController {
             if (dialogButton == saveButtonType) {
                 test.setTestName(name.getText());
                 test.setShortCode(code.getText());
-                test.setDepartment(deptCombo.getValue());
+                Department selectedDept = deptCombo.getValue();
+                test.setDepartment(selectedDept);
+                String categoryName = categoryCombo.getValue() != null
+                        ? categoryCombo.getValue().getName()
+                        : categoryCombo.getEditor().getText();
+                TestCategory resolvedCategory = testDefinitionService.findOrCreateCategory(categoryName, selectedDept);
+                test.setCategory(resolvedCategory);
+                test.setUnit(unit.getText() != null ? unit.getText().trim() : null);
                 try {
                     if (!price.getText().isEmpty()) {
                         test.setPrice(new java.math.BigDecimal(price.getText()));

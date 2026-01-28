@@ -12,8 +12,6 @@ import org.springframework.boot.builder.SpringApplicationBuilder;
 import org.springframework.context.ConfigurableApplicationContext;
 
 import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 
 /**
  * JavaFX Desktop Application entry point.
@@ -25,14 +23,9 @@ public class DesktopApplication extends Application {
 
     @Override
     public void init() throws Exception {
-        // Ensure app data folders exist and expose the SQLite db path to Spring.
-        Path dbPath = AppPaths.databasePath();
-        Files.createDirectories(dbPath.getParent());
+        // Ensure app data folders exist (logs/backups).
+        Files.createDirectories(AppPaths.appDataDir());
         Files.createDirectories(AppPaths.backupsDir());
-
-        // Spring resolves this via application.properties:
-        // spring.datasource.url=jdbc:sqlite:${qdc.db.path}
-        System.setProperty("qdc.db.path", dbPath.toAbsolutePath().toString());
 
         // Initialize Spring context before JavaFX starts
         springContext = new SpringApplicationBuilder(QdcLimsApplication.class)
@@ -87,33 +80,6 @@ public class DesktopApplication extends Application {
         // Close Spring context when JavaFX app closes
         springContext.close();
         Platform.exit();
-    }
-
-    private void basicSetup() {
-        // Set up application data directory
-        // AppPaths.init(); // This method might be missing or private
-
-        // Ensure logs directory exists
-        try {
-            // Reverting to direct path creation if AppPaths helper methods are missing
-            // Or using public constants if available. Assuming AppPaths follows standard
-            // naming.
-            // Let's rely on Spring Boot's logging config or just skip explicit dir creation
-            // here
-            // since Spring Boot creates log files automatically.
-
-            // However, to fix calculation errors quickly, let's comment out the calls
-            // causing errors
-            // until we verify AppPaths structure.
-            /*
-             * Files.createDirectories(Paths.get(AppPaths.getLogDir()));
-             * Files.createDirectories(Paths.get(AppPaths.getDbDir()));
-             */
-            // Since we moved to PostgreSQL, we don't strictly need to create local DB dirs
-            // anyway.
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
     }
 
     public static void main(String[] args) {

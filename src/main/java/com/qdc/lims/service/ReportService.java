@@ -4,6 +4,7 @@ import com.lowagie.text.*;
 import com.lowagie.text.pdf.*;
 import com.qdc.lims.entity.*;
 import com.qdc.lims.repository.LabOrderRepository;
+import com.qdc.lims.repository.ReferenceRangeRepository;
 import org.springframework.stereotype.Service;
 
 import java.awt.Color;
@@ -24,6 +25,7 @@ public class ReportService {
     private final LabOrderRepository orderRepo;
     private final BrandingService brandingService;
     private final LocaleFormatService localeFormatService;
+    private final ReferenceRangeRepository referenceRangeRepository;
 
     /**
      * Creates the report service.
@@ -33,10 +35,12 @@ public class ReportService {
      */
     public ReportService(LabOrderRepository orderRepo,
             BrandingService brandingService,
-            LocaleFormatService localeFormatService) {
+            LocaleFormatService localeFormatService,
+            ReferenceRangeRepository referenceRangeRepository) {
         this.orderRepo = orderRepo;
         this.brandingService = brandingService;
         this.localeFormatService = localeFormatService;
+        this.referenceRangeRepository = referenceRangeRepository;
     }
 
     /**
@@ -93,7 +97,7 @@ public class ReportService {
                     continue;
                 }
                 addSectionHeader(document, department);
-                addResultsTable(document, results);
+                addResultsTable(document, results, patient);
                 document.add(new Paragraph(" "));
             }
 
@@ -143,7 +147,7 @@ public class ReportService {
         document.add(section);
     }
 
-    private void addResultsTable(Document document, List<LabResult> results) throws DocumentException {
+    private void addResultsTable(Document document, List<LabResult> results, Patient patient) throws DocumentException {
         PdfPTable table = new PdfPTable(4);
         table.setWidthPercentage(100);
         table.setWidths(new float[]{4, 2, 2, 3});
@@ -168,20 +172,95 @@ public class ReportService {
             String unit = result.getTestDefinition().getUnit();
             addCell(table, unit != null ? unit : "", false);
 
-            String range = formatRange(result.getTestDefinition());
+            String range = formatRange(result.getTestDefinition(), patient);
             addCell(table, range, false);
         }
 
         document.add(table);
     }
 
-    private String formatRange(TestDefinition testDefinition) {
+    private String formatRange(TestDefinition testDefinition, Patient patient) {
         BigDecimal min = testDefinition.getMinRange();
         BigDecimal max = testDefinition.getMaxRange();
+        ReferenceRange range = findMatchingRange(testDefinition, patient);
+        if (range != null) {
+            min = range.getMinVal();
+            max = range.getMaxVal();
+        }
         if (min != null && max != null) {
             return min + " - " + max;
         }
         return "";
+    }
+
+    private ReferenceRange findMatchingRange(TestDefinition testDefinition, Patient patient) {
+        if (testDefinition == null || testDefinition.getId() == null) {
+            return null;
+        }
+        List<ReferenceRange> ranges = referenceRangeRepository.findByTestId(testDefinition.getId());
+        if (ranges == null || ranges.isEmpty()) {
+            return null;
+        }
+        Integer age = patient != null ? patient.getAge() : null;
+        String gender = patient != null ? patient.getGender() : null;
+
+        return ranges.stream()
+                .filter(range -> matchesRange(range, age, gender))
+                .sorted((a, b) -> {
+                    int genderScoreA = genderScore(a, gender);
+                    int genderScoreB = genderScore(b, gender);
+                    if (genderScoreA != genderScoreB) {
+                        return Integer.compare(genderScoreB, genderScoreA);
+                    }
+                    Integer minA = a.getMinAge();
+                    Integer minB = b.getMinAge();
+                    if (minA == null && minB == null) {
+                        return 0;
+                    }
+                    if (minA == null) {
+                        return 1;
+                    }
+                    if (minB == null) {
+                        return -1;
+                    }
+                    return Integer.compare(minA, minB);
+                })
+                .findFirst()
+                .orElse(null);
+    }
+
+    private boolean matchesRange(ReferenceRange range, Integer age, String gender) {
+        if (range == null) {
+            return false;
+        }
+        String rangeGender = range.getGender();
+        if (gender != null && rangeGender != null && !"Both".equalsIgnoreCase(rangeGender)
+                && !rangeGender.equalsIgnoreCase(gender)) {
+            return false;
+        }
+        if (age != null) {
+            if (range.getMinAge() != null && age < range.getMinAge()) {
+                return false;
+            }
+            if (range.getMaxAge() != null && age > range.getMaxAge()) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private int genderScore(ReferenceRange range, String gender) {
+        if (range == null) {
+            return 0;
+        }
+        String rangeGender = range.getGender();
+        if (gender != null && rangeGender != null && rangeGender.equalsIgnoreCase(gender)) {
+            return 2;
+        }
+        if (rangeGender != null && "Both".equalsIgnoreCase(rangeGender)) {
+            return 1;
+        }
+        return 0;
     }
 
     private void addLabContactDetails(Document document) throws DocumentException {

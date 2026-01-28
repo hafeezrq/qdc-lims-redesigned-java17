@@ -12,13 +12,12 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.util.List;
 
 @Service
 public class ReportExportService {
 
-    @Autowired
-    private ConfigService configService;
     @Autowired
     private BrandingService brandingService;
     @Autowired
@@ -57,8 +56,8 @@ public class ReportExportService {
         addCell(table, "Balance", HEADER_FONT, true);
 
         // Data
-        double grandTotal = 0;
-        double totalPaid = 0;
+        BigDecimal grandTotal = BigDecimal.ZERO;
+        BigDecimal totalPaid = BigDecimal.ZERO;
 
         for (LabOrder order : orders) {
             addCell(table, order.getId().toString(), DATA_FONT, false);
@@ -66,17 +65,20 @@ public class ReportExportService {
             addCell(table, order.getReferringDoctor() != null ? order.getReferringDoctor().getName() : "-", DATA_FONT,
                     false);
             addCell(table,
-                    localeFormatService.formatCurrency(order.getTotalAmount() != null ? order.getTotalAmount() : 0.0),
+                    localeFormatService.formatCurrency(order.getTotalAmount() != null ? order.getTotalAmount()
+                            : BigDecimal.ZERO),
                     DATA_FONT, false);
             addCell(table,
-                    localeFormatService.formatCurrency(order.getPaidAmount() != null ? order.getPaidAmount() : 0.0),
+                    localeFormatService.formatCurrency(order.getPaidAmount() != null ? order.getPaidAmount()
+                            : BigDecimal.ZERO),
                     DATA_FONT, false);
             addCell(table,
-                    localeFormatService.formatCurrency(order.getBalanceDue() != null ? order.getBalanceDue() : 0.0),
+                    localeFormatService.formatCurrency(order.getBalanceDue() != null ? order.getBalanceDue()
+                            : BigDecimal.ZERO),
                     DATA_FONT, false);
 
-            grandTotal += (order.getTotalAmount() != null ? order.getTotalAmount() : 0);
-            totalPaid += (order.getPaidAmount() != null ? order.getPaidAmount() : 0);
+            grandTotal = grandTotal.add(order.getTotalAmount() != null ? order.getTotalAmount() : BigDecimal.ZERO);
+            totalPaid = totalPaid.add(order.getPaidAmount() != null ? order.getPaidAmount() : BigDecimal.ZERO);
         }
 
         document.add(table);
@@ -109,9 +111,15 @@ public class ReportExportService {
                         localeFormatService.formatDateTime(order.getOrderDate()),
                         order.getPatient().getFullName(),
                         order.getReferringDoctor() != null ? order.getReferringDoctor().getName() : "",
-                        localeFormatService.formatNumber(order.getTotalAmount() != null ? order.getTotalAmount() : 0.0),
-                        localeFormatService.formatNumber(order.getPaidAmount() != null ? order.getPaidAmount() : 0.0),
-                        localeFormatService.formatNumber(order.getBalanceDue() != null ? order.getBalanceDue() : 0.0)));
+                        localeFormatService
+                                .formatNumber(order.getTotalAmount() != null ? order.getTotalAmount()
+                                        : BigDecimal.ZERO),
+                        localeFormatService
+                                .formatNumber(order.getPaidAmount() != null ? order.getPaidAmount()
+                                        : BigDecimal.ZERO),
+                        localeFormatService
+                                .formatNumber(order.getBalanceDue() != null ? order.getBalanceDue()
+                                        : BigDecimal.ZERO)));
             }
         }
     }

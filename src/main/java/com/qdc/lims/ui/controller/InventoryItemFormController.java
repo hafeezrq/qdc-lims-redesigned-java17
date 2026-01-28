@@ -12,6 +12,7 @@ import javafx.util.StringConverter;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 /**
@@ -103,9 +104,9 @@ public class InventoryItemFormController {
     private void populateFields() {
         itemNameField.setText(item.getItemName());
         unitComboBox.setValue(item.getUnit());
-        minThresholdField.setText(item.getMinThreshold() != null ? item.getMinThreshold().toString() : "");
-        currentStockField.setText(item.getCurrentStock() != null ? item.getCurrentStock().toString() : "");
-        avgCostField.setText(item.getAverageCost() != null ? item.getAverageCost().toString() : "");
+        minThresholdField.setText(item.getMinThreshold() != null ? item.getMinThreshold().toPlainString() : "");
+        currentStockField.setText(item.getCurrentStock() != null ? item.getCurrentStock().toPlainString() : "");
+        avgCostField.setText(item.getAverageCost() != null ? item.getAverageCost().toPlainString() : "");
         supplierComboBox.setValue(item.getPreferredSupplier());
         activeCheckBox.setSelected(item.isActive());
     }
@@ -121,11 +122,11 @@ public class InventoryItemFormController {
 
         item.setItemName(itemNameField.getText().trim());
         item.setUnit(unitComboBox.getValue());
-        item.setMinThreshold(Double.parseDouble(minThresholdField.getText().trim()));
-        item.setCurrentStock(Double.parseDouble(currentStockField.getText().trim()));
+        item.setMinThreshold(new BigDecimal(minThresholdField.getText().trim()));
+        item.setCurrentStock(new BigDecimal(currentStockField.getText().trim()));
 
         String costText = avgCostField.getText().trim();
-        item.setAverageCost(costText.isEmpty() ? 0.0 : Double.parseDouble(costText));
+        item.setAverageCost(costText.isEmpty() ? BigDecimal.ZERO : new BigDecimal(costText));
 
         item.setPreferredSupplier(supplierComboBox.getValue());
         item.setActive(activeCheckBox.isSelected());
@@ -156,14 +157,14 @@ public class InventoryItemFormController {
         }
 
         try {
-            Double.parseDouble(minThresholdField.getText().trim());
+            new BigDecimal(minThresholdField.getText().trim());
         } catch (Exception e) {
             showAlert("Min Threshold must be a valid number.");
             return false;
         }
 
         try {
-            Double.parseDouble(currentStockField.getText().trim());
+            new BigDecimal(currentStockField.getText().trim());
         } catch (Exception e) {
             showAlert("Current Stock must be a valid number.");
             return false;

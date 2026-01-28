@@ -46,6 +46,15 @@ public class TestDefinition {
     private Department department;
 
     /**
+     * Category under the department (optional until populated).
+     */
+    @ManyToOne
+    @JoinColumn(name = "category_id")
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
+    private TestCategory category;
+
+    /**
      * Measurement unit (nullable for qualitative tests).
      */
     private String unit;
@@ -68,6 +77,7 @@ public class TestDefinition {
     /**
      * Soft-active flag.
      */
+    @Builder.Default
     private Boolean active = true;
 
     /**
@@ -82,6 +92,7 @@ public class TestDefinition {
      * Reference ranges associated with the test.
      */
     @OneToMany(mappedBy = "test", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("minAge ASC, maxAge ASC")
     @ToString.Exclude
     @EqualsAndHashCode.Exclude
     private List<ReferenceRange> ranges;

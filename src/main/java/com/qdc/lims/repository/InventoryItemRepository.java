@@ -2,6 +2,8 @@ package com.qdc.lims.repository;
 
 import com.qdc.lims.entity.InventoryItem;
 import org.springframework.data.jpa.repository.JpaRepository;
+
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 
@@ -18,7 +20,7 @@ public interface InventoryItemRepository extends JpaRepository<InventoryItem, Lo
      * @param threshold the stock threshold value
      * @return list of InventoryItems running low on stock
      */
-    List<InventoryItem> findByCurrentStockLessThanEqual(Double threshold);
+    List<InventoryItem> findByCurrentStockLessThanEqual(BigDecimal threshold);
 
     Optional<InventoryItem> findByItemName(String itemName);
 

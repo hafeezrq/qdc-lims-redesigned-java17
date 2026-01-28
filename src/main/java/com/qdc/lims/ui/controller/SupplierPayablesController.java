@@ -12,6 +12,7 @@ import javafx.stage.Stage;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
@@ -116,18 +117,18 @@ public class SupplierPayablesController {
                 .collect(Collectors.groupingBy(l -> l.getSupplier() != null ? l.getSupplier().getCompanyName() : "Unknown"));
 
         ObservableList<SupplierPayableSummary> rows = FXCollections.observableArrayList();
-        double totalBill = 0.0;
-        double totalPaid = 0.0;
-        double totalDue = 0.0;
+        BigDecimal totalBill = BigDecimal.ZERO;
+        BigDecimal totalPaid = BigDecimal.ZERO;
+        BigDecimal totalDue = BigDecimal.ZERO;
 
         for (Map.Entry<String, List<SupplierLedger>> entry : bySupplier.entrySet()) {
-            double bill = entry.getValue().stream()
-                    .mapToDouble(l -> l.getBillAmount() != null ? l.getBillAmount() : 0.0)
-                    .sum();
-            double paid = entry.getValue().stream()
-                    .mapToDouble(l -> l.getPaidAmount() != null ? l.getPaidAmount() : 0.0)
-                    .sum();
-            double due = Math.max(0.0, bill - paid);
+            BigDecimal bill = entry.getValue().stream()
+                    .map(l -> l.getBillAmount() != null ? l.getBillAmount() : BigDecimal.ZERO)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+            BigDecimal paid = entry.getValue().stream()
+                    .map(l -> l.getPaidAmount() != null ? l.getPaidAmount() : BigDecimal.ZERO)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+            BigDecimal due = bill.subtract(paid).max(BigDecimal.ZERO);
 
             SupplierLedger latest = entry.getValue().stream()
                     .sorted((a, b) -> {
@@ -156,9 +157,9 @@ public class SupplierPayablesController {
 
             rows.add(new SupplierPayableSummary(entry.getKey(), bill, paid, due, latestInvoice, latestDue));
 
-            totalBill += bill;
-            totalPaid += paid;
-            totalDue += due;
+            totalBill = totalBill.add(bill);
+            totalPaid = totalPaid.add(paid);
+            totalDue = totalDue.add(due);
         }
 
         summaryTable.setItems(rows);
@@ -175,7 +176,7 @@ public class SupplierPayablesController {
         ((Stage) closeButton.getScene().getWindow()).close();
     }
 
-    private String formatAmount(double amount) {
+    private String formatAmount(BigDecimal amount) {
         return localeFormatService.formatCurrency(amount);
     }
 
@@ -184,16 +185,17 @@ public class SupplierPayablesController {
      */
     public static class SupplierPayableSummary {
         private final String supplierName;
-        private final double totalBill;
-        private final double totalPaid;
-        private final double totalDue;
+        private final BigDecimal totalBill;
+        private final BigDecimal totalPaid;
+        private final BigDecimal totalDue;
         private final String latestInvoiceNumber;
         private final String latestDueDate;
 
         /**
          * Creates a supplier payable summary row.
          */
-        public SupplierPayableSummary(String supplierName, double totalBill, double totalPaid, double totalDue,
+        public SupplierPayableSummary(String supplierName, BigDecimal totalBill, BigDecimal totalPaid,
+                BigDecimal totalDue,
                 String latestInvoiceNumber, String latestDueDate) {
             this.supplierName = supplierName;
             this.totalBill = totalBill;

@@ -110,7 +110,7 @@ public class ExpenseController {
                 return;
             }
 
-            double amount = localeFormatService.parseNumber(amountField.getText());
+            java.math.BigDecimal amount = localeFormatService.parseNumber(amountField.getText());
 
             Payment payment = new Payment();
             payment.setType("EXPENSE");
@@ -149,7 +149,9 @@ public class ExpenseController {
 
             expenseTable.setItems(FXCollections.observableArrayList(expenses));
 
-            double total = expenses.stream().mapToDouble(Payment::getAmount).sum();
+            java.math.BigDecimal total = expenses.stream()
+                    .map(p -> p.getAmount() != null ? p.getAmount() : java.math.BigDecimal.ZERO)
+                    .reduce(java.math.BigDecimal.ZERO, java.math.BigDecimal::add);
             totalExpensesLabel.setText(localeFormatService.formatCurrency(total));
         }
     }

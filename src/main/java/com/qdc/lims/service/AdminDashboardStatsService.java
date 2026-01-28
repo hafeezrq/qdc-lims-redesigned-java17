@@ -9,6 +9,7 @@ import com.qdc.lims.repository.TestDefinitionRepository;
 import com.qdc.lims.repository.UserRepository;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -57,22 +58,22 @@ public class AdminDashboardStatsService {
         LocalDateTime start = today.atStartOfDay();
         LocalDateTime end = today.atTime(23, 59, 59);
 
-        double orderIncome = 0.0;
+        BigDecimal orderIncome = BigDecimal.ZERO;
         List<LabOrder> orders = labOrderRepository.findByOrderDateBetween(start, end);
         for (LabOrder order : orders) {
-            if (order.getPaidAmount() != null && order.getPaidAmount() > 0) {
-                orderIncome += order.getPaidAmount();
+            if (order.getPaidAmount() != null && order.getPaidAmount().compareTo(BigDecimal.ZERO) > 0) {
+                orderIncome = orderIncome.add(order.getPaidAmount());
             }
         }
 
-        double miscIncome = 0.0;
+        BigDecimal miscIncome = BigDecimal.ZERO;
         List<Payment> incomePayments = paymentRepository.findByTypeAndTransactionDateBetween("INCOME", start, end);
         for (Payment payment : incomePayments) {
-            if (payment.getAmount() != null && payment.getAmount() > 0) {
-                miscIncome += payment.getAmount();
+            if (payment.getAmount() != null && payment.getAmount().compareTo(BigDecimal.ZERO) > 0) {
+                miscIncome = miscIncome.add(payment.getAmount());
             }
         }
 
-        return localeFormatService.formatCurrency(orderIncome + miscIncome);
+        return localeFormatService.formatCurrency(orderIncome.add(miscIncome));
     }
 }

@@ -12,6 +12,7 @@ import javafx.stage.Stage;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
@@ -93,8 +94,8 @@ public class DoctorCommissionLedgerController {
         List<CommissionLedger> eligibleCommissions = commissions.stream()
                 .filter(c -> c.getDoctor() != null)
                 .filter(c -> {
-                    Double rate = c.getDoctor().getCommissionPercentage();
-                    return rate != null && rate > 0.0;
+                    BigDecimal rate = c.getDoctor().getCommissionPercentage();
+                    return rate != null && rate.compareTo(BigDecimal.ZERO) > 0;
                 })
                 .collect(Collectors.toList());
 
@@ -123,29 +124,29 @@ public class DoctorCommissionLedgerController {
                 .collect(Collectors.groupingBy(c -> c.getDoctor().getName()));
 
         ObservableList<DoctorCommissionSummary> rows = FXCollections.observableArrayList();
-        double totalDue = 0.0;
-        double totalPaid = 0.0;
-        double totalCommission = 0.0;
+        BigDecimal totalDue = BigDecimal.ZERO;
+        BigDecimal totalPaid = BigDecimal.ZERO;
+        BigDecimal totalCommission = BigDecimal.ZERO;
 
         for (Map.Entry<String, List<CommissionLedger>> entry : byDoctor.entrySet()) {
-            double billTotal = entry.getValue().stream()
-                    .mapToDouble(this::getBillAmount)
-                    .sum();
-            double commissionTotal = entry.getValue().stream()
-                    .mapToDouble(this::getCommissionAmount)
-                    .sum();
-            double paid = entry.getValue().stream()
-                    .mapToDouble(c -> c.getPaidAmount() != null ? c.getPaidAmount() : 0.0)
-                    .sum();
-            double due = Math.max(0.0, commissionTotal - paid);
+            BigDecimal billTotal = entry.getValue().stream()
+                    .map(this::getBillAmount)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+            BigDecimal commissionTotal = entry.getValue().stream()
+                    .map(this::getCommissionAmount)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+            BigDecimal paid = entry.getValue().stream()
+                    .map(c -> c.getPaidAmount() != null ? c.getPaidAmount() : BigDecimal.ZERO)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+            BigDecimal due = commissionTotal.subtract(paid).max(BigDecimal.ZERO);
 
-            if (commissionTotal > 0.0) {
+            if (commissionTotal.compareTo(BigDecimal.ZERO) > 0) {
                 rows.add(new DoctorCommissionSummary(entry.getKey(), billTotal, commissionTotal, paid, due));
             }
 
-            totalDue += due;
-            totalPaid += paid;
-            totalCommission += commissionTotal;
+            totalDue = totalDue.add(due);
+            totalPaid = totalPaid.add(paid);
+            totalCommission = totalCommission.add(commissionTotal);
         }
 
         summaryTable.setItems(rows);
@@ -162,23 +163,25 @@ public class DoctorCommissionLedgerController {
         ((Stage) closeButton.getScene().getWindow()).close();
     }
 
-    private String formatAmount(double amount) {
+    private String formatAmount(BigDecimal amount) {
         return localeFormatService.formatCurrency(amount);
     }
 
-    private double getBillAmount(CommissionLedger commission) {
+    private BigDecimal getBillAmount(CommissionLedger commission) {
         if (commission.getLabOrder() == null || commission.getLabOrder().getTotalAmount() == null) {
-            return 0.0;
+            return BigDecimal.ZERO;
         }
         return commission.getLabOrder().getTotalAmount();
     }
 
-    private double getCommissionAmount(CommissionLedger commission) {
-        Double rate = commission.getDoctor() != null ? commission.getDoctor().getCommissionPercentage() : null;
-        if (rate == null || rate <= 0.0) {
-            return 0.0;
+    private BigDecimal getCommissionAmount(CommissionLedger commission) {
+        BigDecimal rate = commission.getDoctor() != null ? commission.getDoctor().getCommissionPercentage() : null;
+        if (rate == null || rate.compareTo(BigDecimal.ZERO) <= 0) {
+            return BigDecimal.ZERO;
         }
-        return getBillAmount(commission) * (rate / 100.0);
+        return getBillAmount(commission)
+                .multiply(rate)
+                .divide(BigDecimal.valueOf(100), 4, java.math.RoundingMode.HALF_UP);
     }
 
     /**
@@ -186,16 +189,16 @@ public class DoctorCommissionLedgerController {
      */
     public static class DoctorCommissionSummary {
         private final String doctorName;
-        private final double totalBill;
-        private final double commissionTotal;
-        private final double paidTotal;
-        private final double dueTotal;
+        private final BigDecimal totalBill;
+        private final BigDecimal commissionTotal;
+        private final BigDecimal paidTotal;
+        private final BigDecimal dueTotal;
 
         /**
          * Creates a commission summary row.
          */
-        public DoctorCommissionSummary(String doctorName, double totalBill, double commissionTotal, double paidTotal,
-                double dueTotal) {
+        public DoctorCommissionSummary(String doctorName, BigDecimal totalBill, BigDecimal commissionTotal,
+                BigDecimal paidTotal, BigDecimal dueTotal) {
             this.doctorName = doctorName;
             this.totalBill = totalBill;
             this.commissionTotal = commissionTotal;

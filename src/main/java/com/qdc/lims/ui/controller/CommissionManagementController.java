@@ -4,8 +4,8 @@ import com.qdc.lims.entity.CommissionLedger;
 import com.qdc.lims.entity.Doctor;
 import com.qdc.lims.repository.CommissionLedgerRepository;
 import com.qdc.lims.service.LocaleFormatService;
-import javafx.beans.property.SimpleDoubleProperty;
 import javafx.beans.property.SimpleLongProperty;
+import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -18,6 +18,7 @@ import javafx.stage.Stage;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import java.math.BigDecimal;
 import java.text.DecimalFormat;
 import java.time.LocalDate;
 import java.time.YearMonth;
@@ -81,11 +82,11 @@ public class CommissionManagementController {
     @FXML
     private TableColumn<CommissionLedger, String> dateColumn;
     @FXML
-    private TableColumn<CommissionLedger, Double> billAmountColumn;
+    private TableColumn<CommissionLedger, BigDecimal> billAmountColumn;
     @FXML
-    private TableColumn<CommissionLedger, Double> commissionRateColumn;
+    private TableColumn<CommissionLedger, BigDecimal> commissionRateColumn;
     @FXML
-    private TableColumn<CommissionLedger, Double> commissionAmountColumn;
+    private TableColumn<CommissionLedger, BigDecimal> commissionAmountColumn;
     @FXML
     private TableColumn<CommissionLedger, String> statusColumn;
     @FXML
@@ -168,12 +169,10 @@ public class CommissionManagementController {
         });
 
         // Bill Amount Column
-        billAmountColumn.setCellValueFactory(cellData -> {
-            return new SimpleDoubleProperty(getBillAmount(cellData.getValue())).asObject();
-        });
-        billAmountColumn.setCellFactory(column -> new TableCell<CommissionLedger, Double>() {
+        billAmountColumn.setCellValueFactory(cellData -> new SimpleObjectProperty<>(getBillAmount(cellData.getValue())));
+        billAmountColumn.setCellFactory(column -> new TableCell<CommissionLedger, BigDecimal>() {
             @Override
-            protected void updateItem(Double item, boolean empty) {
+            protected void updateItem(BigDecimal item, boolean empty) {
                 super.updateItem(item, empty);
                 if (empty || item == null) {
                     setText(null);
@@ -184,12 +183,11 @@ public class CommissionManagementController {
         });
 
         // Commission Rate Column
-        commissionRateColumn.setCellValueFactory(cellData -> {
-            return new SimpleDoubleProperty(getCommissionRate(cellData.getValue())).asObject();
-        });
-        commissionRateColumn.setCellFactory(column -> new TableCell<CommissionLedger, Double>() {
+        commissionRateColumn
+                .setCellValueFactory(cellData -> new SimpleObjectProperty<>(getCommissionRate(cellData.getValue())));
+        commissionRateColumn.setCellFactory(column -> new TableCell<CommissionLedger, BigDecimal>() {
             @Override
-            protected void updateItem(Double item, boolean empty) {
+            protected void updateItem(BigDecimal item, boolean empty) {
                 super.updateItem(item, empty);
                 if (empty || item == null) {
                     setText(null);
@@ -200,19 +198,18 @@ public class CommissionManagementController {
         });
 
         // Commission Amount Column
-        commissionAmountColumn.setCellValueFactory(cellData -> {
-            return new SimpleDoubleProperty(getCommissionAmount(cellData.getValue())).asObject();
-        });
-        commissionAmountColumn.setCellFactory(column -> new TableCell<CommissionLedger, Double>() {
+        commissionAmountColumn
+                .setCellValueFactory(cellData -> new SimpleObjectProperty<>(getCommissionAmount(cellData.getValue())));
+        commissionAmountColumn.setCellFactory(column -> new TableCell<CommissionLedger, BigDecimal>() {
             @Override
-            protected void updateItem(Double item, boolean empty) {
+            protected void updateItem(BigDecimal item, boolean empty) {
                 super.updateItem(item, empty);
                 if (empty || item == null) {
                     setText(null);
                 } else {
                     setText(localeFormatService.formatCurrency(item));
                     // Highlight larger commissions
-                    if (item > 100.0) {
+                    if (item.compareTo(BigDecimal.valueOf(100)) > 0) {
                         setStyle("-fx-font-weight: bold; -fx-text-fill: #27ae60;");
                     } else {
                         setStyle("");
@@ -306,7 +303,8 @@ public class CommissionManagementController {
             List<String> doctors = commissions.stream()
                     .map(CommissionLedger::getDoctor)
                     .filter(Objects::nonNull)
-                    .filter(doctor -> doctor.getCommissionPercentage() != null && doctor.getCommissionPercentage() > 0.0)
+                    .filter(doctor -> doctor.getCommissionPercentage() != null
+                            && doctor.getCommissionPercentage().compareTo(BigDecimal.ZERO) > 0)
                     .map(Doctor::getName)
                     .distinct()
                     .sorted()
@@ -338,8 +336,8 @@ public class CommissionManagementController {
 
         List<CommissionLedger> filtered = allCommissions.stream()
                 .filter(commission -> {
-                    double rate = getCommissionRate(commission);
-                    if (rate <= 0.0) {
+                    BigDecimal rate = getCommissionRate(commission);
+                    if (rate.compareTo(BigDecimal.ZERO) <= 0) {
                         return false;
                     }
                     // Doctor filter
@@ -376,17 +374,17 @@ public class CommissionManagementController {
     private void updateStatistics() {
         try {
             // Total unpaid
-            double totalUnpaid = allCommissions.stream()
+            BigDecimal totalUnpaid = allCommissions.stream()
                     .filter(c -> "UNPAID".equals(c.getStatus()))
-                    .mapToDouble(this::getCommissionAmount)
-                    .sum();
+                    .map(this::getCommissionAmount)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
             totalUnpaidLabel.setText(localeFormatService.formatCurrency(totalUnpaid));
 
             // Total paid
-            double totalPaid = allCommissions.stream()
+            BigDecimal totalPaid = allCommissions.stream()
                     .filter(c -> "PAID".equals(c.getStatus()))
-                    .mapToDouble(this::getCommissionAmount)
-                    .sum();
+                    .map(this::getCommissionAmount)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
             totalPaidLabel.setText(localeFormatService.formatCurrency(totalPaid));
 
             // Pending count
@@ -398,10 +396,10 @@ public class CommissionManagementController {
             LocalDate startOfMonth = currentMonth.atDay(1);
             LocalDate endOfMonth = currentMonth.atEndOfMonth();
 
-            Double thisMonth = commissionRepository.findByTransactionDateBetween(startOfMonth, endOfMonth)
+            BigDecimal thisMonth = commissionRepository.findByTransactionDateBetween(startOfMonth, endOfMonth)
                     .stream()
-                    .mapToDouble(this::getCommissionAmount)
-                    .sum();
+                    .map(this::getCommissionAmount)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
             thisMonthLabel.setText(localeFormatService.formatCurrency(thisMonth));
 
         } catch (Exception e) {
@@ -409,25 +407,27 @@ public class CommissionManagementController {
         }
     }
 
-    private double getBillAmount(CommissionLedger commission) {
+    private BigDecimal getBillAmount(CommissionLedger commission) {
         if (commission.getLabOrder() == null || commission.getLabOrder().getTotalAmount() == null) {
-            return 0.0;
+            return BigDecimal.ZERO;
         }
         return commission.getLabOrder().getTotalAmount();
     }
 
-    private double getCommissionRate(CommissionLedger commission) {
+    private BigDecimal getCommissionRate(CommissionLedger commission) {
         Doctor doctor = commission.getDoctor();
-        Double rate = doctor != null ? doctor.getCommissionPercentage() : null;
-        return rate != null ? rate : 0.0;
+        BigDecimal rate = doctor != null ? doctor.getCommissionPercentage() : null;
+        return rate != null ? rate : BigDecimal.ZERO;
     }
 
-    private double getCommissionAmount(CommissionLedger commission) {
-        double rate = getCommissionRate(commission);
-        if (rate <= 0.0) {
-            return 0.0;
+    private BigDecimal getCommissionAmount(CommissionLedger commission) {
+        BigDecimal rate = getCommissionRate(commission);
+        if (rate.compareTo(BigDecimal.ZERO) <= 0) {
+            return BigDecimal.ZERO;
         }
-        return getBillAmount(commission) * (rate / 100.0);
+        return getBillAmount(commission)
+                .multiply(rate)
+                .divide(BigDecimal.valueOf(100), 4, java.math.RoundingMode.HALF_UP);
     }
 
     /**
@@ -487,9 +487,9 @@ public class CommissionManagementController {
             return;
         }
 
-        double totalAmount = selected.stream()
-                .mapToDouble(this::getCommissionAmount)
-                .sum();
+        BigDecimal totalAmount = selected.stream()
+                .map(this::getCommissionAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         Alert confirmation = new Alert(Alert.AlertType.CONFIRMATION);
         confirmation.setTitle("Confirm Payment");
@@ -541,7 +541,7 @@ public class CommissionManagementController {
                 for (CommissionLedger commission : selected) {
                     commission.setStatus("UNPAID");
                     commission.setPaymentDate(null);
-                    commission.setPaidAmount(0.0);
+                    commission.setPaidAmount(BigDecimal.ZERO);
                     commissionRepository.save(commission);
                 }
                 selectionMap.clear();
@@ -658,9 +658,9 @@ public class CommissionManagementController {
         for (Map.Entry<Doctor, List<CommissionLedger>> entry : byDoctor.entrySet()) {
             Doctor doctor = entry.getKey();
             List<CommissionLedger> commissions = entry.getValue();
-            double total = commissions.stream()
-                    .mapToDouble(this::getCommissionAmount)
-                    .sum();
+            BigDecimal total = commissions.stream()
+                    .map(this::getCommissionAmount)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
 
             CheckBox checkBox = new CheckBox();
             checkBox.setSelected(true);

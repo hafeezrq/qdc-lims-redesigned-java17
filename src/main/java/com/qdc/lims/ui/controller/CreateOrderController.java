@@ -119,8 +119,8 @@ public class CreateOrderController {
         selectedTestsListView.setItems(selectedTestNames);
 
         messageLabel.setText("");
-        totalAmountLabel.setText(localeFormatService.formatCurrency(0.0));
-        balanceLabel.setText(localeFormatService.formatCurrency(0.0));
+        totalAmountLabel.setText(localeFormatService.formatCurrency(java.math.BigDecimal.ZERO));
+        balanceLabel.setText(localeFormatService.formatCurrency(java.math.BigDecimal.ZERO));
 
         patientSearchField.setOnAction(event -> handleSearchPatient());
     }
@@ -362,7 +362,7 @@ public class CreateOrderController {
             }
         }
         selectedTestsCountLabel.setText(String.valueOf(selectedTests.size()));
-        totalAmountLabel.setText(localeFormatService.formatCurrency(total.doubleValue()));
+        totalAmountLabel.setText(localeFormatService.formatCurrency(total));
 
         calculateBalance();
     }
@@ -374,14 +374,14 @@ public class CreateOrderController {
                 total = total.add(test.getPrice());
             }
         }
-        double discount = parseDouble(discountField.getText());
-        double cashPaid = parseDouble(cashPaidField.getText());
-        double balance = total.doubleValue() - discount - cashPaid;
+        java.math.BigDecimal discount = parseAmount(discountField.getText());
+        java.math.BigDecimal cashPaid = parseAmount(cashPaidField.getText());
+        java.math.BigDecimal balance = total.subtract(discount).subtract(cashPaid);
         balanceLabel.setText(localeFormatService.formatCurrency(balance));
 
-        if (balance < 0) {
+        if (balance.compareTo(java.math.BigDecimal.ZERO) < 0) {
             balanceLabel.setStyle("-fx-font-size: 14; -fx-font-weight: bold; -fx-text-fill: #27ae60;");
-        } else if (balance == 0) {
+        } else if (balance.compareTo(java.math.BigDecimal.ZERO) == 0) {
             balanceLabel.setStyle("-fx-font-size: 14; -fx-font-weight: bold; -fx-text-fill: #95a5a6;");
         } else {
             balanceLabel.setStyle("-fx-font-size: 14; -fx-font-weight: bold; -fx-text-fill: #e74c3c;");
@@ -414,8 +414,8 @@ public class CreateOrderController {
         List<Integer> panelIds = new ArrayList<>(selectedPanelIds);
 
         // Create order request
-        double discount = parseDouble(discountField.getText());
-        double cashPaid = parseDouble(cashPaidField.getText());
+        java.math.BigDecimal discount = parseAmount(discountField.getText());
+        java.math.BigDecimal cashPaid = parseAmount(cashPaidField.getText());
 
         OrderRequest request = new OrderRequest(
                 selectedPatient.getId(),
@@ -460,7 +460,8 @@ public class CreateOrderController {
                 new Label("Tests: " + order.getResults().size()),
                 new Label("Total: " + localeFormatService.formatCurrency(order.getTotalAmount())),
                 new Label("Discount: " + localeFormatService.formatCurrency(
-                        order.getDiscountAmount() != null ? order.getDiscountAmount() : 0)),
+                        order.getDiscountAmount() != null ? order.getDiscountAmount()
+                                : java.math.BigDecimal.ZERO)),
                 new Label("Paid: " + localeFormatService.formatCurrency(order.getPaidAmount())),
                 new Label("Balance Due: " + localeFormatService.formatCurrency(order.getBalanceDue())));
         summaryBox.getChildren().get(0).setStyle("-fx-font-size: 16; -fx-font-weight: bold; -fx-text-fill: #27ae60;");
@@ -565,7 +566,7 @@ public class CreateOrderController {
      */
     private String buildNormalReceipt(LabOrder order) {
         StringBuilder sb = new StringBuilder();
-        sb.append("========== QDC LABORATORY ==========\n");
+        sb.append("========== LIMS LABORATORY ==========\n");
         sb.append("          RECEIPT / INVOICE\n");
         sb.append("=====================================\n\n");
         sb.append("Receipt #: ").append(order.getId()).append("\n");
@@ -583,20 +584,21 @@ public class CreateOrderController {
             sb.append("* ").append(result.getTestDefinition().getTestName());
             sb.append(" - ").append(localeFormatService.formatCurrency(
                     result.getTestDefinition().getPrice() != null
-                            ? result.getTestDefinition().getPrice().doubleValue()
-                            : 0.0))
+                            ? result.getTestDefinition().getPrice()
+                            : java.math.BigDecimal.ZERO))
                     .append("\n");
         }
 
         sb.append("\n--- BILLING ---\n");
         sb.append("Subtotal:  ").append(localeFormatService.formatCurrency(order.getTotalAmount())).append("\n");
-        if (order.getDiscountAmount() != null && order.getDiscountAmount() > 0) {
+        if (order.getDiscountAmount() != null
+                && order.getDiscountAmount().compareTo(java.math.BigDecimal.ZERO) > 0) {
             sb.append("Discount:  ").append(localeFormatService.formatCurrency(order.getDiscountAmount())).append("\n");
         }
         sb.append("Paid:      ").append(localeFormatService.formatCurrency(order.getPaidAmount())).append("\n");
         sb.append("Balance:   ").append(localeFormatService.formatCurrency(order.getBalanceDue())).append("\n\n");
         sb.append("=====================================\n");
-        sb.append("    Thank you for choosing QDC!\n");
+        sb.append("    Thank you for choosing LIMS!\n");
         sb.append("    Results typically ready in 24hrs\n");
         sb.append("=====================================\n");
 
@@ -612,7 +614,7 @@ public class CreateOrderController {
 
         // Header - centered, compact
         sb.append("--------------------------------\n");
-        sb.append("       QDC LABORATORY\n");
+        sb.append("       LIMS LABORATORY\n");
         sb.append("         CASH RECEIPT\n");
         sb.append("--------------------------------\n");
         sb.append("Rcpt#: ").append(order.getId()).append("\n");
@@ -634,8 +636,8 @@ public class CreateOrderController {
             String testName = truncate(result.getTestDefinition().getTestName(), 18);
             String price = localeFormatService.formatCurrency(
                     result.getTestDefinition().getPrice() != null
-                            ? result.getTestDefinition().getPrice().doubleValue()
-                            : 0.0);
+                            ? result.getTestDefinition().getPrice()
+                            : java.math.BigDecimal.ZERO);
             sb.append(String.format("%-18s %8s\n", testName, price));
         }
         sb.append("--------------------------------\n");
@@ -643,7 +645,8 @@ public class CreateOrderController {
         // Billing - right-aligned amounts
         sb.append(String.format("%-12s %10s\n", "Total:",
                 localeFormatService.formatCurrency(order.getTotalAmount())));
-        if (order.getDiscountAmount() != null && order.getDiscountAmount() > 0) {
+        if (order.getDiscountAmount() != null
+                && order.getDiscountAmount().compareTo(java.math.BigDecimal.ZERO) > 0) {
             sb.append(String.format("%-12s %10s\n", "Discount:",
                     localeFormatService.formatCurrency(order.getDiscountAmount())));
         }
@@ -654,7 +657,7 @@ public class CreateOrderController {
         sb.append("--------------------------------\n");
 
         // Footer - compact
-        sb.append("   Thank you for choosing QDC!\n");
+        sb.append("   Thank you for choosing LIMS!\n");
         sb.append("  Results ready in 24 hours\n");
         sb.append("--------------------------------\n");
         sb.append("\n\n"); // Extra space for tear-off
@@ -696,8 +699,8 @@ public class CreateOrderController {
         cashPaidField.setText("0");
 
         selectedTestsCountLabel.setText("0");
-        totalAmountLabel.setText(localeFormatService.formatCurrency(0.0));
-        balanceLabel.setText(localeFormatService.formatCurrency(0.0));
+        totalAmountLabel.setText(localeFormatService.formatCurrency(java.math.BigDecimal.ZERO));
+        balanceLabel.setText(localeFormatService.formatCurrency(java.math.BigDecimal.ZERO));
 
         messageLabel.setText("");
     }
@@ -708,7 +711,7 @@ public class CreateOrderController {
         stage.close();
     }
 
-    private double parseDouble(String text) {
+    private java.math.BigDecimal parseAmount(String text) {
         return localeFormatService.parseNumber(text);
     }
 

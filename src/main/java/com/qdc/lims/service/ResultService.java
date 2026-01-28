@@ -3,9 +3,11 @@ package com.qdc.lims.service;
 import com.qdc.lims.dto.ResultEntryRequest;
 import com.qdc.lims.entity.LabOrder;
 import com.qdc.lims.entity.LabResult;
+import com.qdc.lims.entity.ReferenceRange;
 import com.qdc.lims.entity.TestDefinition;
 import com.qdc.lims.repository.LabOrderRepository;
 import com.qdc.lims.repository.LabResultRepository;
+import com.qdc.lims.repository.ReferenceRangeRepository;
 
 import com.qdc.lims.ui.CurrentUserProvider;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,6 +24,7 @@ public class ResultService {
 
     private final LabResultRepository repository;
     private final CurrentUserProvider currentUserProvider;
+    private final ReferenceRangeRepository referenceRangeRepository;
 
     @Autowired
     private LabOrderRepository orderRepo;
@@ -31,9 +34,12 @@ public class ResultService {
      *
      * @param repository repository for lab results
      */
-    public ResultService(LabResultRepository repository, CurrentUserProvider currentUserProvider) {
+    public ResultService(LabResultRepository repository,
+            CurrentUserProvider currentUserProvider,
+            ReferenceRangeRepository referenceRangeRepository) {
         this.repository = repository;
         this.currentUserProvider = currentUserProvider;
+        this.referenceRangeRepository = referenceRangeRepository;
     }
 
     /**
@@ -57,11 +63,12 @@ public class ResultService {
         try {
             java.math.BigDecimal val = new java.math.BigDecimal(request.value());
 
-            if (test.getMinRange() != null && test.getMaxRange() != null) {
-                if (val.compareTo(test.getMinRange()) < 0) {
+            ReferenceRange matchingRule = findMatchingRange(test, result.getLabOrder().getPatient());
+            if (matchingRule != null && matchingRule.getMinVal() != null && matchingRule.getMaxVal() != null) {
+                if (val.compareTo(matchingRule.getMinVal()) < 0) {
                     result.setAbnormal(true);
                     result.setRemarks("LOW");
-                } else if (val.compareTo(test.getMaxRange()) > 0) {
+                } else if (val.compareTo(matchingRule.getMaxVal()) > 0) {
                     result.setAbnormal(true);
                     result.setRemarks("HIGH");
                 } else {
@@ -124,23 +131,7 @@ public class ResultService {
                     // 3. Get Patient
                     com.qdc.lims.entity.Patient patient = dbResult.getLabOrder().getPatient();
 
-                    // 4. Find Matching Rule
-                    com.qdc.lims.entity.ReferenceRange matchingRule = null;
-
-                    if (test.getRanges() != null) {
-                        for (com.qdc.lims.entity.ReferenceRange rule : test.getRanges()) {
-                            boolean genderMatch = rule.getGender().equalsIgnoreCase("Both")
-                                    || rule.getGender().equalsIgnoreCase(patient.getGender());
-
-                            boolean ageMatch = patient.getAge() >= rule.getMinAge()
-                                    && patient.getAge() <= rule.getMaxAge();
-
-                            if (genderMatch && ageMatch) {
-                                matchingRule = rule;
-                                break;
-                            }
-                        }
-                    }
+                    ReferenceRange matchingRule = findMatchingRange(test, patient);
 
                     // 5. Apply High/Low Logic
                     if (matchingRule != null) {
@@ -224,19 +215,7 @@ public class ResultService {
                     java.math.BigDecimal numVal = new java.math.BigDecimal(val);
                     com.qdc.lims.entity.Patient patient = dbResult.getLabOrder().getPatient();
 
-                    com.qdc.lims.entity.ReferenceRange matchingRule = null;
-                    if (test.getRanges() != null) {
-                        for (com.qdc.lims.entity.ReferenceRange rule : test.getRanges()) {
-                            boolean genderMatch = rule.getGender().equalsIgnoreCase("Both")
-                                    || rule.getGender().equalsIgnoreCase(patient.getGender());
-                            boolean ageMatch = patient.getAge() >= rule.getMinAge()
-                                    && patient.getAge() <= rule.getMaxAge();
-                            if (genderMatch && ageMatch) {
-                                matchingRule = rule;
-                                break;
-                            }
-                        }
-                    }
+                    ReferenceRange matchingRule = findMatchingRange(test, patient);
 
                     if (matchingRule != null) {
                         if (numVal.compareTo(matchingRule.getMinVal()) < 0) {
@@ -272,6 +251,76 @@ public class ResultService {
         }
 
         orderRepo.save(labOrder);
+    }
+
+    private ReferenceRange findMatchingRange(TestDefinition test, com.qdc.lims.entity.Patient patient) {
+        if (test == null || test.getId() == null) {
+            return null;
+        }
+        var ranges = referenceRangeRepository.findByTestId(test.getId());
+        if (ranges == null || ranges.isEmpty()) {
+            return null;
+        }
+        Integer age = patient != null ? patient.getAge() : null;
+        String gender = patient != null ? patient.getGender() : null;
+
+        return ranges.stream()
+                .filter(range -> matchesRange(range, age, gender))
+                .sorted((a, b) -> {
+                    int genderScoreA = genderScore(a, gender);
+                    int genderScoreB = genderScore(b, gender);
+                    if (genderScoreA != genderScoreB) {
+                        return Integer.compare(genderScoreB, genderScoreA);
+                    }
+                    Integer minA = a.getMinAge();
+                    Integer minB = b.getMinAge();
+                    if (minA == null && minB == null) {
+                        return 0;
+                    }
+                    if (minA == null) {
+                        return 1;
+                    }
+                    if (minB == null) {
+                        return -1;
+                    }
+                    return Integer.compare(minA, minB);
+                })
+                .findFirst()
+                .orElse(null);
+    }
+
+    private boolean matchesRange(ReferenceRange range, Integer age, String gender) {
+        if (range == null) {
+            return false;
+        }
+        String rangeGender = range.getGender();
+        if (gender != null && rangeGender != null && !"Both".equalsIgnoreCase(rangeGender)
+                && !rangeGender.equalsIgnoreCase(gender)) {
+            return false;
+        }
+        if (age != null) {
+            if (range.getMinAge() != null && age < range.getMinAge()) {
+                return false;
+            }
+            if (range.getMaxAge() != null && age > range.getMaxAge()) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private int genderScore(ReferenceRange range, String gender) {
+        if (range == null) {
+            return 0;
+        }
+        String rangeGender = range.getGender();
+        if (gender != null && rangeGender != null && rangeGender.equalsIgnoreCase(gender)) {
+            return 2;
+        }
+        if (rangeGender != null && "Both".equalsIgnoreCase(rangeGender)) {
+            return 1;
+        }
+        return 0;
     }
 
 }

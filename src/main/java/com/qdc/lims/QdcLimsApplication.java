@@ -9,7 +9,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 public class QdcLimsApplication {
 
 	/**
-	 * Starts the QDC-LIMS Spring Boot application.
+	 * Starts the LIMS Spring Boot application.
 	 * 
 	 * Note: When running in a desktop environment, this method delegates to
 	 * JavaFX Application.launch() via the DesktopLauncher class if used,

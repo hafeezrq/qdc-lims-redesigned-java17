@@ -15,6 +15,7 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -58,13 +59,13 @@ public class InventoryViewController {
     private TableColumn<InventoryItem, String> categoryColumn;
 
     @FXML
-    private TableColumn<InventoryItem, Double> currentStockColumn;
+    private TableColumn<InventoryItem, BigDecimal> currentStockColumn;
 
     @FXML
     private TableColumn<InventoryItem, String> unitColumn;
 
     @FXML
-    private TableColumn<InventoryItem, Double> minStockColumn;
+    private TableColumn<InventoryItem, BigDecimal> minStockColumn;
 
     @FXML
     private TableColumn<InventoryItem, String> supplierColumn;
@@ -104,12 +105,12 @@ public class InventoryViewController {
         // Status column with color coding
         statusColumn.setCellValueFactory(cellData -> {
             InventoryItem item = cellData.getValue();
-            double current = item.getCurrentStock();
-            double min = item.getMinThreshold();
+            BigDecimal current = item.getCurrentStock() != null ? item.getCurrentStock() : BigDecimal.ZERO;
+            BigDecimal min = item.getMinThreshold() != null ? item.getMinThreshold() : BigDecimal.ZERO;
 
-            if (current <= 0) {
+            if (current.compareTo(BigDecimal.ZERO) <= 0) {
                 return new javafx.beans.property.SimpleStringProperty("OUT OF STOCK");
-            } else if (current <= min) {
+            } else if (current.compareTo(min) <= 0) {
                 return new javafx.beans.property.SimpleStringProperty("LOW STOCK");
             } else {
                 return new javafx.beans.property.SimpleStringProperty("IN STOCK");
@@ -163,11 +164,18 @@ public class InventoryViewController {
 
         if (lowStockRadio.isSelected()) {
             filteredItems = allItems.stream()
-                    .filter(item -> item.getCurrentStock() > 0 && item.getCurrentStock() <= item.getMinThreshold())
+                    .filter(item -> {
+                        BigDecimal current = item.getCurrentStock() != null ? item.getCurrentStock() : BigDecimal.ZERO;
+                        BigDecimal min = item.getMinThreshold() != null ? item.getMinThreshold() : BigDecimal.ZERO;
+                        return current.compareTo(BigDecimal.ZERO) > 0 && current.compareTo(min) <= 0;
+                    })
                     .collect(Collectors.toList());
         } else if (outOfStockRadio.isSelected()) {
             filteredItems = allItems.stream()
-                    .filter(item -> item.getCurrentStock() <= 0)
+                    .filter(item -> {
+                        BigDecimal current = item.getCurrentStock() != null ? item.getCurrentStock() : BigDecimal.ZERO;
+                        return current.compareTo(BigDecimal.ZERO) <= 0;
+                    })
                     .collect(Collectors.toList());
         }
 
@@ -178,10 +186,17 @@ public class InventoryViewController {
     private void updateStats() {
         int total = allItems.size();
         long lowStock = allItems.stream()
-                .filter(item -> item.getCurrentStock() > 0 && item.getCurrentStock() <= item.getMinThreshold())
+                .filter(item -> {
+                    BigDecimal current = item.getCurrentStock() != null ? item.getCurrentStock() : BigDecimal.ZERO;
+                    BigDecimal min = item.getMinThreshold() != null ? item.getMinThreshold() : BigDecimal.ZERO;
+                    return current.compareTo(BigDecimal.ZERO) > 0 && current.compareTo(min) <= 0;
+                })
                 .count();
         long outOfStock = allItems.stream()
-                .filter(item -> item.getCurrentStock() <= 0)
+                .filter(item -> {
+                    BigDecimal current = item.getCurrentStock() != null ? item.getCurrentStock() : BigDecimal.ZERO;
+                    return current.compareTo(BigDecimal.ZERO) <= 0;
+                })
                 .count();
 
         totalItemsLabel.setText(String.valueOf(total));
@@ -269,14 +284,15 @@ public class InventoryViewController {
             return;
         }
 
-        TextInputDialog dialog = new TextInputDialog(selected.getCurrentStock().toString());
+        TextInputDialog dialog = new TextInputDialog(
+                selected.getCurrentStock() != null ? selected.getCurrentStock().toPlainString() : "0");
         dialog.setTitle("Quick Stock Adjustment");
         dialog.setHeaderText("Adjust stock for: " + selected.getItemName());
         dialog.setContentText("New Stock Level:");
 
         dialog.showAndWait().ifPresent(result -> {
             try {
-                double newStock = Double.parseDouble(result);
+                BigDecimal newStock = new BigDecimal(result);
                 selected.setCurrentStock(newStock);
                 inventoryRepository.save(selected);
                 handleRefresh();

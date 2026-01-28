@@ -38,6 +38,7 @@ public class Department {
     /**
      * Soft-active flag.
      */
+    @Builder.Default
     private Boolean active = true;
 
     /**
@@ -47,6 +48,14 @@ public class Department {
     @ToString.Exclude
     @EqualsAndHashCode.Exclude
     private List<TestDefinition> testDefinitions;
+
+    /**
+     * Categories defined under this department.
+     */
+    @OneToMany(mappedBy = "department", cascade = CascadeType.ALL)
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
+    private List<TestCategory> categories;
 
     /**
      * All panels grouped under this department.

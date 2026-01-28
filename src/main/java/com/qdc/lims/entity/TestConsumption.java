@@ -3,6 +3,8 @@ package com.qdc.lims.entity;
 import jakarta.persistence.*;
 import lombok.Data;
 
+import java.math.BigDecimal;
+
 /**
  * Entity representing a recipe that links a test to inventory items and their required quantities.
  * This forms the basis for automatic inventory deduction when tests are ordered.
@@ -27,5 +29,6 @@ public class TestConsumption {
     private InventoryItem item;
 
     // The Quantity (e.g., 1.0 or 0.5)
-    private Double quantity;
+    @Column(precision = 19, scale = 4)
+    private BigDecimal quantity;
 }

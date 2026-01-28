@@ -7,6 +7,8 @@ import com.qdc.lims.repository.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 
 /**
@@ -53,26 +55,30 @@ public class PurchaseService {
         }
 
         Supplier supplier = supplierRepo.findById(request.supplierId()).orElseThrow();
-        double totalBill = 0.0;
+        BigDecimal totalBill = BigDecimal.ZERO;
 
         // 1. Process Each Item
         for (PurchaseItemDTO itemDto : request.items()) {
             InventoryItem stockItem = inventoryRepo.findById(itemDto.itemId()).orElseThrow();
 
             // --- THE WAC MATH ---
-            double oldStock = stockItem.getCurrentStock() != null ? stockItem.getCurrentStock() : 0.0;
-            double oldCost = stockItem.getAverageCost() != null ? stockItem.getAverageCost() : 0.0;
-            double oldTotalValue = oldStock * oldCost;
+            BigDecimal oldStock = stockItem.getCurrentStock() != null ? stockItem.getCurrentStock()
+                    : BigDecimal.ZERO;
+            BigDecimal oldCost = stockItem.getAverageCost() != null ? stockItem.getAverageCost()
+                    : BigDecimal.ZERO;
+            BigDecimal oldTotalValue = oldStock.multiply(oldCost);
 
-            double newQty = itemDto.quantity();
-            double newCost = itemDto.costPrice();
-            double newTotalValue = newQty * newCost;
+            BigDecimal newQty = itemDto.quantity() != null ? itemDto.quantity() : BigDecimal.ZERO;
+            BigDecimal newCost = itemDto.costPrice() != null ? itemDto.costPrice() : BigDecimal.ZERO;
+            BigDecimal newTotalValue = newQty.multiply(newCost);
 
-            double finalQty = oldStock + newQty;
-            double finalValue = oldTotalValue + newTotalValue;
+            BigDecimal finalQty = oldStock.add(newQty);
+            BigDecimal finalValue = oldTotalValue.add(newTotalValue);
 
             // Calculate New Average (Avoid divide by zero)
-            double newAverageCost = (finalQty > 0) ? (finalValue / finalQty) : newCost;
+            BigDecimal newAverageCost = finalQty.compareTo(BigDecimal.ZERO) > 0
+                    ? finalValue.divide(finalQty, 4, RoundingMode.HALF_UP)
+                    : newCost;
 
             // --- UPDATE DB ---
             stockItem.setCurrentStock(finalQty);
@@ -85,7 +91,7 @@ public class PurchaseService {
 
             inventoryRepo.save(stockItem);
 
-            totalBill += newTotalValue;
+            totalBill = totalBill.add(newTotalValue);
         }
 
         // 2. Create Financial Ledger Entry
@@ -100,7 +106,7 @@ public class PurchaseService {
         ledgerRepo.save(ledger);
 
         // --- NEW: 3. Handle Immediate Payment (The Cash) ---
-        if (request.amountPaidNow() != null && request.amountPaidNow() > 0) {
+        if (request.amountPaidNow() != null && request.amountPaidNow().compareTo(BigDecimal.ZERO) > 0) {
             SupplierLedger payLedger = new SupplierLedger();
             payLedger.setSupplier(supplier);
             payLedger.setTransactionDate(LocalDate.now());
@@ -109,7 +115,7 @@ public class PurchaseService {
             payLedger.setDescription("Immediate Payment (" + request.paymentMode() + ")");
 
             payLedger.setInvoiceNumber(request.invoiceNumber());
-            payLedger.setBillAmount(0.0);
+            payLedger.setBillAmount(BigDecimal.ZERO);
             payLedger.setPaidAmount(request.amountPaidNow()); // We paid this
 
             ledgerRepo.save(payLedger);

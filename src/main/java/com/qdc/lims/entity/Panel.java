@@ -42,6 +42,7 @@ public class Panel {
     /**
      * Soft-active flag.
      */
+    @Builder.Default
     private Boolean active = true;
 
     /**

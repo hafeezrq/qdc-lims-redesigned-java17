@@ -39,7 +39,7 @@ public class ConfigService {
     }
 
     private void ensureDefaults() {
-        createIfNotExists("APP_NAME", "QDC LIMS", "General");
+        createIfNotExists("APP_NAME", "LIMS", "General");
 
         // Whitelabel clinic profile fields intentionally default to blank so the
         // first-run experience prompts for real lab details.

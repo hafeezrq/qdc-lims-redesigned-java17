@@ -3,15 +3,19 @@ package com.qdc.lims.ui.controller;
 import com.qdc.lims.entity.ReferenceRange;
 import com.qdc.lims.entity.TestDefinition;
 import com.qdc.lims.repository.ReferenceRangeRepository;
+import com.qdc.lims.repository.TestDefinitionRepository;
+import javafx.beans.binding.Bindings;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import javafx.stage.Stage;
+import javafx.util.StringConverter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import java.util.Comparator;
 import java.util.Optional;
 
 /**
@@ -24,8 +28,14 @@ public class ReferenceRangeController {
     @Autowired
     private ReferenceRangeRepository referenceRangeRepository;
 
+    @Autowired
+    private TestDefinitionRepository testDefinitionRepository;
+
     @FXML
     private Label testNameLabel;
+
+    @FXML
+    private ComboBox<TestDefinition> testCombo;
 
     @FXML
     private TableView<ReferenceRange> rangesTable;
@@ -70,6 +80,7 @@ public class ReferenceRangeController {
     public void initialize() {
         setupTable();
         setupForm();
+        setupTestSelector();
     }
 
     /**
@@ -79,8 +90,13 @@ public class ReferenceRangeController {
      */
     public void setTestDefinition(TestDefinition test) {
         this.currentTest = test;
-        testNameLabel.setText("Reference Ranges for: " + test.getTestName());
-        loadRanges();
+        if (test != null) {
+            testNameLabel.setText("Reference Ranges for: " + test.getTestName());
+            loadRanges();
+        } else {
+            testNameLabel.setText("For Test: ...");
+            rangesList.clear();
+        }
     }
 
     private void setupTable() {
@@ -93,7 +109,8 @@ public class ReferenceRangeController {
 
         normalRangeColumn.setCellValueFactory(cellData -> {
             ReferenceRange r = cellData.getValue();
-            return new SimpleStringProperty(r.getMinVal() + " - " + r.getMaxVal() + " " + currentTest.getUnit());
+            String unit = currentTest != null && currentTest.getUnit() != null ? currentTest.getUnit() : "";
+            return new SimpleStringProperty(r.getMinVal() + " - " + r.getMaxVal() + " " + unit);
         });
 
         rangesTable.setItems(rangesList);
@@ -111,6 +128,29 @@ public class ReferenceRangeController {
         setupNumericField(maxAgeField);
         setupDecimalField(minValField);
         setupDecimalField(maxValField);
+    }
+
+    private void setupTestSelector() {
+        testCombo.setItems(FXCollections.observableArrayList(
+                testDefinitionRepository.findAll().stream()
+                        .sorted(Comparator.comparing(TestDefinition::getTestName, String.CASE_INSENSITIVE_ORDER))
+                        .toList()));
+        testCombo.setConverter(new StringConverter<>() {
+            @Override
+            public String toString(TestDefinition test) {
+                return test != null ? test.getTestName() : "";
+            }
+
+            @Override
+            public TestDefinition fromString(String string) {
+                return testCombo.getItems().stream()
+                        .filter(t -> t.getTestName().equalsIgnoreCase(string))
+                        .findFirst()
+                        .orElse(null);
+            }
+        });
+        testCombo.valueProperty().addListener((obs, oldVal, newVal) -> setTestDefinition(newVal));
+        addButton.disableProperty().bind(Bindings.isNull(testCombo.valueProperty()));
     }
 
     private void setupNumericField(TextField field) {

@@ -5,7 +5,6 @@ import net.lingala.zip4j.ZipFile;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-import javax.sql.DataSource;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -28,7 +27,6 @@ import java.util.stream.Collectors;
 @Service
 public class BackupService {
 
-    private final DataSource dataSource;
     private final BackupSettingsService settings;
 
     @Value("${spring.datasource.url:}")
@@ -43,8 +41,7 @@ public class BackupService {
     @Value("${qdc.backup.retention-days:0}")
     private int retentionDays;
 
-    public BackupService(DataSource dataSource, BackupSettingsService settings) {
-        this.dataSource = dataSource;
+    public BackupService(BackupSettingsService settings) {
         this.settings = settings;
     }
 
@@ -55,16 +52,14 @@ public class BackupService {
         try {
             Files.createDirectories(AppPaths.backupsDir());
 
-            boolean postgres = isPostgres();
-            String suffix = postgres ? ".dump" : ".db";
-            Path tempBackup = Files.createTempFile("qdc-lims-backup-", suffix);
+            if (!isPostgres()) {
+                throw new IllegalStateException("Backup requires PostgreSQL configuration.");
+            }
+            String suffix = ".dump";
+            Path tempBackup = Files.createTempFile("lims-backup-", suffix);
             tempBackup.toFile().deleteOnExit();
 
-            if (postgres) {
-                runPostgresDump(tempBackup);
-            } else {
-                runSqliteBackup(tempBackup);
-            }
+            runPostgresDump(tempBackup);
 
             String ts = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss"));
             Path outZip = AppPaths.backupsDir().resolve("backup_" + ts + ".zip");
@@ -97,7 +92,7 @@ public class BackupService {
         }
 
         try {
-            Path tempDir = Files.createTempDirectory("qdc-lims-restore-");
+            Path tempDir = Files.createTempDirectory("lims-restore-");
             tempDir.toFile().deleteOnExit();
 
             try (ZipFile zipFile = new ZipFile(backupZip.toFile(), password)) {
@@ -118,17 +113,10 @@ public class BackupService {
             }
 
             Path extracted = dbFiles.get(0);
-            if (isPostgres()) {
-                runPostgresRestore(extracted);
-            } else {
-                Path targetDb = AppPaths.databasePath();
-                Files.createDirectories(targetDb.getParent());
-
-                // NOTE: replacing the DB while the app is running is risky.
-                // We do a best-effort overwrite; the UI should trigger an app restart after
-                // this.
-                Files.copy(extracted, targetDb, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+            if (!isPostgres()) {
+                throw new IllegalStateException("Restore requires PostgreSQL configuration.");
             }
+            runPostgresRestore(extracted);
         } catch (Exception e) {
             throw new RuntimeException("Restore failed: " + e.getMessage(), e);
         }
@@ -176,19 +164,6 @@ public class BackupService {
 
     private boolean isPostgres() {
         return jdbcUrl != null && jdbcUrl.startsWith("jdbc:postgresql:");
-    }
-
-    private void runSqliteBackup(Path outFile) throws Exception {
-        // Safe SQLite copy using VACUUM INTO (requires SQLite 3.27+).
-        try (var conn = dataSource.getConnection()) {
-            if (!conn.getClass().getName().toLowerCase().contains("sqlite")) {
-                throw new IllegalStateException("Unsupported DB connection for SQLite backup: " + conn.getClass());
-            }
-            try (var st = conn.createStatement()) {
-                String outPath = outFile.toAbsolutePath().toString().replace("\\", "/");
-                st.execute("VACUUM INTO '" + outPath.replace("'", "''") + "'");
-            }
-        }
     }
 
     private void runPostgresDump(Path outFile) throws Exception {

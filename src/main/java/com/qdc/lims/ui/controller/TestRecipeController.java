@@ -16,6 +16,8 @@ import javafx.util.StringConverter;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
+import java.math.BigDecimal;
+
 /**
  * Controller for defining per-test inventory consumption recipes.
  */
@@ -32,7 +34,7 @@ public class TestRecipeController {
     @FXML
     private TableColumn<TestConsumption, String> itemNameColumn;
     @FXML
-    private TableColumn<TestConsumption, Double> quantityColumn;
+    private TableColumn<TestConsumption, BigDecimal> quantityColumn;
     @FXML
     private TableColumn<TestConsumption, String> unitColumn;
 
@@ -91,7 +93,9 @@ public class TestRecipeController {
             @Override
             public String toString(InventoryItem item) {
                 return item == null ? null
-                        : item.getItemName() + " (" + item.getCurrentStock() + " " + item.getUnit() + ")";
+                        : item.getItemName() + " ("
+                                + (item.getCurrentStock() != null ? item.getCurrentStock().toPlainString() : "0")
+                                + " " + item.getUnit() + ")";
             }
 
             @Override
@@ -164,15 +168,15 @@ public class TestRecipeController {
         }
 
         String qtyStr = quantityField.getText().trim();
-        double quantity;
+        BigDecimal quantity;
         try {
-            quantity = Double.parseDouble(qtyStr);
+            quantity = new BigDecimal(qtyStr);
         } catch (NumberFormatException e) {
             showAlert("Invalid Input", "Quantity must be a valid number.");
             return;
         }
 
-        if (quantity <= 0) {
+        if (quantity.compareTo(BigDecimal.ZERO) <= 0) {
             showAlert("Invalid Input", "Quantity must be greater than 0.");
             return;
         }

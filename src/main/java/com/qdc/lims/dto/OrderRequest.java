@@ -1,5 +1,6 @@
 package com.qdc.lims.dto;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 /**
@@ -17,6 +18,6 @@ public record OrderRequest(
                 Long doctorId, // Can be null if Self/Walk-in
                 List<Long> testIds,
                 List<Integer> panelIds,
-                Double discount,
-                Double cashPaid) {
+                BigDecimal discount,
+                BigDecimal cashPaid) {
 }

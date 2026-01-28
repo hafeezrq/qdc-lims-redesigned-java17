@@ -12,7 +12,7 @@
 <?import javafx.scene.layout.Region?>
 <?import javafx.scene.layout.VBox?>
 
-<BorderPane xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1"
+<BorderPane xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
             fx:controller="com.qdc.lims.ui.controller.TestDefinitionsController">
     <!-- Header -->
     <top>
@@ -41,10 +41,16 @@
                     <TableColumn fx:id="colDepartment" text="Department" prefWidth="150">
                         <cellValueFactory><PropertyValueFactory property="department"/></cellValueFactory>
                     </TableColumn>
+                    <TableColumn fx:id="colCategory" text="Category" prefWidth="150">
+                        <cellValueFactory><PropertyValueFactory property="category"/></cellValueFactory>
+                    </TableColumn>
+                    <TableColumn fx:id="colUnit" text="Unit" prefWidth="120">
+                        <cellValueFactory><PropertyValueFactory property="unit"/></cellValueFactory>
+                    </TableColumn>
                     <TableColumn fx:id="colPrice" text="Price" prefWidth="100">
                         <cellValueFactory><PropertyValueFactory property="price"/></cellValueFactory>
                     </TableColumn>
-                    <TableColumn fx:id="colActions" text="Actions" prefWidth="150"/>
+                    <TableColumn fx:id="colActions" text="Actions" prefWidth="240"/>
                 </columns>
                 <columnResizePolicy>
                     <TableView fx:constant="CONSTRAINED_RESIZE_POLICY"/>

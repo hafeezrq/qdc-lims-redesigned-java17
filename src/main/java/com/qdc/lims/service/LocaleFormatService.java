@@ -2,6 +2,7 @@ package com.qdc.lims.service;
 
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import java.text.NumberFormat;
@@ -36,32 +37,32 @@ public class LocaleFormatService {
         this.dateTimeFormatter = DateTimeFormatter.ofLocalizedDateTime(FormatStyle.MEDIUM).withLocale(locale);
     }
 
-    public String formatCurrency(double amount) {
+    public String formatCurrency(BigDecimal amount) {
         NumberFormat format = createCurrencyFormat();
-        return format.format(amount);
+        return format.format(amount == null ? BigDecimal.ZERO : amount);
     }
 
-    public String formatCurrencyNullable(Double amount) {
+    public String formatCurrencyNullable(BigDecimal amount) {
         if (amount == null) {
             return "-";
         }
         return formatCurrency(amount);
     }
 
-    public String formatNumber(double amount) {
+    public String formatNumber(BigDecimal amount) {
         NumberFormat format = createNumberFormat();
-        return format.format(amount);
+        return format.format(amount == null ? BigDecimal.ZERO : amount);
     }
 
-    public double parseNumber(String raw) {
+    public BigDecimal parseNumber(String raw) {
         if (raw == null || raw.isBlank()) {
-            return 0.0;
+            return BigDecimal.ZERO;
         }
         String trimmed = raw.trim();
         NumberFormat format = createNumberFormat();
         try {
             Number parsed = format.parse(trimmed);
-            return parsed != null ? parsed.doubleValue() : 0.0;
+            return parsed != null ? new BigDecimal(parsed.toString()) : BigDecimal.ZERO;
         } catch (ParseException ignored) {
         }
 
@@ -74,9 +75,9 @@ public class LocaleFormatService {
         }
         normalized = normalized.replaceAll("[^0-9.+-]", "");
         try {
-            return Double.parseDouble(normalized);
+            return new BigDecimal(normalized);
         } catch (NumberFormatException ignored) {
-            return 0.0;
+            return BigDecimal.ZERO;
         }
     }
 

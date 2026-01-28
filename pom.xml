@@ -10,9 +10,9 @@
 		<relativePath /> <!-- lookup parent from repository -->
 	</parent>
 	<groupId>com.qdc</groupId>
-	<artifactId>qdc-lims</artifactId>
-	<version>0.0.1-SNAPSHOT</version>
-	<name>QDC-LIMS</name>
+	<artifactId>lims</artifactId>
+	<version>1.0.0</version>
+	<name>LIMS</name>
 	<description>Demo project for Spring Boot</description>
 	<url />
 	<licenses>
@@ -28,7 +28,7 @@
 		<url />
 	</scm>
 	<properties>
-		<java.version>17</java.version>
+		<java.version>21</java.version>
 	</properties>
 	<dependencies>
 		<!-- Spring (desktop app uses Spring for DI + JPA services/repositories) -->
@@ -43,18 +43,6 @@
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-validation</artifactId>
-		</dependency>
-
-		<!-- Embedded database: SQLite -->
-		<dependency>
-			<groupId>org.xerial</groupId>
-			<artifactId>sqlite-jdbc</artifactId>
-			<version>3.45.3.0</version>
-		</dependency>
-		<!-- SQLite Dialect -->
-		<dependency>
-			<groupId>org.hibernate.orm</groupId>
-			<artifactId>hibernate-community-dialects</artifactId>
 		</dependency>
 
 		<!-- PostgreSQL Driver (Added for Migration) -->
@@ -119,17 +107,17 @@
 		<dependency>
 			<groupId>org.openjfx</groupId>
 			<artifactId>javafx-controls</artifactId>
-			<version>17.0.10</version>
+			<version>21.0.2</version>
 		</dependency>
 		<dependency>
 			<groupId>org.openjfx</groupId>
 			<artifactId>javafx-fxml</artifactId>
-			<version>17.0.10</version>
+			<version>21.0.2</version>
 		</dependency>
 		<dependency>
 			<groupId>org.openjfx</groupId>
 			<artifactId>javafx-graphics</artifactId>
-			<version>17.0.10</version>
+			<version>21.0.2</version>
 		</dependency>
 
 		<!-- Testing -->
@@ -194,9 +182,9 @@
 				<version>3.0.1</version>
 				<configuration>
 					<mainClass>com.qdc.lims.DesktopApplication</mainClass>
-					<launcher>qdc-lims</launcher>
+					<launcher>lims</launcher>
 					<jpackage>
-						<imageName>QDC LIMS</imageName>
+						<imageName>LIMS</imageName>
 						<appVersion>${project.version}</appVersion>
 					</jpackage>
 				</configuration>

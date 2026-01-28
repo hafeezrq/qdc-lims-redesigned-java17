@@ -5,7 +5,7 @@
 <?import javafx.scene.layout.*?>
 <?import javafx.scene.text.Font?>
 
-<BorderPane xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" 
+<BorderPane xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" 
             fx:controller="com.qdc.lims.ui.controller.MainWindowController"
             fx:id="mainContainer"
             prefWidth="1100" prefHeight="750">
@@ -16,7 +16,7 @@
             <!-- Application Header -->
             <HBox style="-fx-background-color: linear-gradient(to right, #2c3e50, #3498db); -fx-padding: 8 15;" 
                   spacing="15" alignment="CENTER_LEFT">
-                <Label fx:id="appHeaderLabel" text="🧪 QDC LIMS" style="-fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: default;">
+                <Label fx:id="appHeaderLabel" text="🧪 LIMS" style="-fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: default;">
                     <font><Font size="18"/></font>
                 </Label>
                 <Region HBox.hgrow="ALWAYS" style="-fx-cursor: default;"/>
@@ -59,7 +59,7 @@
             
             <!-- Title -->
             <VBox alignment="CENTER" spacing="8" style="-fx-cursor: default;">
-                <Label fx:id="welcomeTitleLabel" text="QDC LIMS" style="-fx-font-weight: bold; -fx-text-fill: #2c3e50; -fx-cursor: default;">
+                <Label fx:id="welcomeTitleLabel" text="LIMS" style="-fx-font-weight: bold; -fx-text-fill: #2c3e50; -fx-cursor: default;">
                     <font><Font size="42"/></font>
                 </Label>
                 <Label fx:id="welcomeSubtitleLabel" text="Laboratory Information Management System" 

@@ -3,6 +3,8 @@ package com.qdc.lims.dto;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 
+import java.math.BigDecimal;
+
 /**
  * Aggregate row used by the financial queries screen to summarize counts and
  * totals by category and type.
@@ -29,5 +31,5 @@ public class FinancialCategorySummary {
     /**
      * Summed monetary amount for the category.
      */
-    private double totalAmount;
+    private BigDecimal totalAmount;
 }

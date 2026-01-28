@@ -19,8 +19,8 @@ import javafx.stage.Stage;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -162,7 +162,7 @@ public class PaymentHistoryController {
         // Ideally we would have a separate PaymentReceipt entity linked to order.
         List<LabOrder> orders = orderRepository.findByOrderDateBetween(start.atStartOfDay(), end.atTime(23, 59, 59));
         for (LabOrder order : orders) {
-            if (order.getPaidAmount() > 0) {
+            if (order.getPaidAmount() != null && order.getPaidAmount().compareTo(BigDecimal.ZERO) > 0) {
                 transactions.add(new FinanceTransaction(
                         "ORD-" + order.getId(),
                         order.getOrderDate().toLocalDate(),
@@ -217,7 +217,7 @@ public class PaymentHistoryController {
         // 4. Supplier Payments
         List<SupplierLedger> supplierTxs = supplierRepository.findByTransactionDateBetween(start, end);
         for (SupplierLedger s : supplierTxs) {
-            if (s.getPaidAmount() > 0) {
+            if (s.getPaidAmount() != null && s.getPaidAmount().compareTo(BigDecimal.ZERO) > 0) {
                 transactions.add(new FinanceTransaction(
                         "SUP-" + s.getId(),
                         s.getTransactionDate(),
@@ -248,14 +248,16 @@ public class PaymentHistoryController {
         transactionTable.setItems(allTransactions);
 
         // Update Stats
-        double totalIncome = filtered.stream().filter(t -> "INCOME".equals(t.getType()))
-                .mapToDouble(FinanceTransaction::getAmount).sum();
-        double totalExpense = filtered.stream().filter(t -> "EXPENSE".equals(t.getType()))
-                .mapToDouble(FinanceTransaction::getAmount).sum();
+        BigDecimal totalIncome = filtered.stream().filter(t -> "INCOME".equals(t.getType()))
+                .map(t -> t.getAmount() != null ? t.getAmount() : BigDecimal.ZERO)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal totalExpense = filtered.stream().filter(t -> "EXPENSE".equals(t.getType()))
+                .map(t -> t.getAmount() != null ? t.getAmount() : BigDecimal.ZERO)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         totalIncomeLabel.setText(localeFormatService.formatCurrency(totalIncome));
         totalExpenseLabel.setText(localeFormatService.formatCurrency(totalExpense));
-        netCashFlowLabel.setText(localeFormatService.formatCurrency(totalIncome - totalExpense));
+        netCashFlowLabel.setText(localeFormatService.formatCurrency(totalIncome.subtract(totalExpense)));
         recordCountLabel.setText(filtered.size() + " records found");
     }
 
@@ -273,17 +275,19 @@ public class PaymentHistoryController {
         ((Stage) closeButton.getScene().getWindow()).close();
     }
 
-    private double getCommissionAmount(CommissionLedger commission) {
+    private BigDecimal getCommissionAmount(CommissionLedger commission) {
         if (commission.getDoctor() == null || commission.getDoctor().getCommissionPercentage() == null) {
-            return 0.0;
+            return BigDecimal.ZERO;
         }
-        double rate = commission.getDoctor().getCommissionPercentage();
-        if (rate <= 0.0) {
-            return 0.0;
+        BigDecimal rate = commission.getDoctor().getCommissionPercentage();
+        if (rate.compareTo(BigDecimal.ZERO) <= 0) {
+            return BigDecimal.ZERO;
         }
         if (commission.getLabOrder() == null || commission.getLabOrder().getTotalAmount() == null) {
-            return 0.0;
+            return BigDecimal.ZERO;
         }
-        return commission.getLabOrder().getTotalAmount() * (rate / 100.0);
+        return commission.getLabOrder().getTotalAmount()
+                .multiply(rate)
+                .divide(BigDecimal.valueOf(100), 4, java.math.RoundingMode.HALF_UP);
     }
 }

@@ -13,6 +13,8 @@ import javafx.scene.layout.HBox;
 import javafx.stage.Stage;
 import org.springframework.stereotype.Component;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.List;
 import java.util.Optional;
 
@@ -98,8 +100,12 @@ public class DoctorPanelController {
 
         // Commission Column
         commissionColumn.setCellValueFactory(data -> {
-            Double commission = data.getValue().getCommissionPercentage();
-            return new SimpleStringProperty(commission != null ? String.format("%.1f%%", commission) : "0.0%");
+            BigDecimal commission = data.getValue().getCommissionPercentage();
+            if (commission == null) {
+                return new SimpleStringProperty("0.0%");
+            }
+            BigDecimal rounded = commission.setScale(1, RoundingMode.HALF_UP);
+            return new SimpleStringProperty(rounded.toPlainString() + "%");
         });
 
         // Status Column with color coding
@@ -413,7 +419,7 @@ public class DoctorPanelController {
             clinicField.setText(existingDoctor.getClinicName());
             mobileField.setText(existingDoctor.getMobile());
             commissionField.setText(existingDoctor.getCommissionPercentage() != null
-                    ? String.valueOf(existingDoctor.getCommissionPercentage())
+                    ? existingDoctor.getCommissionPercentage().toPlainString()
                     : "0.0");
             activeCheckBox.setSelected(existingDoctor.isActive());
         }
@@ -440,10 +446,10 @@ public class DoctorPanelController {
                 doctor.setClinicName(clinicField.getText().trim());
                 doctor.setMobile(mobileField.getText().trim());
                 try {
-                    double commission = Double.parseDouble(commissionField.getText().trim());
+                    BigDecimal commission = new BigDecimal(commissionField.getText().trim());
                     doctor.setCommissionPercentage(commission);
                 } catch (NumberFormatException e) {
-                    doctor.setCommissionPercentage(0.0);
+                    doctor.setCommissionPercentage(BigDecimal.ZERO);
                 }
                 doctor.setActive(activeCheckBox.isSelected());
                 return doctor;

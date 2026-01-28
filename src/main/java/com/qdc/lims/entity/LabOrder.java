@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -36,7 +37,8 @@ public class LabOrder {
     private LocalDateTime orderDate;
     @NotBlank(message = "Status is required")
     private String status; // "PENDING", "COMPLETED"
-    private Double totalAmount; // Calculated automatically
+    @Column(precision = 19, scale = 4)
+    private BigDecimal totalAmount; // Calculated automatically
 
     // --- REPORT DELIVERY STATUS ---
     private boolean isReportDelivered = false; // False = In Lab/Rack, True = With Patient
@@ -58,10 +60,14 @@ public class LabOrder {
     private String lastReprintBy;
 
     // ---------- Update: To incorporate accounting ----------//
-    private Double discountAmount = 0.0; // e.g. 100
-    private Double taxAmount = 0.0; // (Optional, usually 0 in labs)
-    private Double paidAmount = 0.0; // e.g. 500 (Patient paid half)
-    private Double balanceDue = 0.0; // e.g. 400 (Remaining)
+    @Column(precision = 19, scale = 4)
+    private BigDecimal discountAmount = BigDecimal.ZERO; // e.g. 100
+    @Column(precision = 19, scale = 4)
+    private BigDecimal taxAmount = BigDecimal.ZERO; // (Optional, usually 0 in labs)
+    @Column(precision = 19, scale = 4)
+    private BigDecimal paidAmount = BigDecimal.ZERO; // e.g. 500 (Patient paid half)
+    @Column(precision = 19, scale = 4)
+    private BigDecimal balanceDue = BigDecimal.ZERO; // e.g. 400 (Remaining)
 
     // One Order = Many Tests (Results)
     // "CascadeType.ALL" means if we save the Order, it auto-saves the Result rows
@@ -85,14 +91,17 @@ public class LabOrder {
      */
     @PreUpdate
     public void calculateBalance() {
-        if (discountAmount == null)
-            discountAmount = 0.0;
-        if (paidAmount == null)
-            paidAmount = 0.0;
-        if (totalAmount == null)
-            totalAmount = 0.0;
+        if (discountAmount == null) {
+            discountAmount = BigDecimal.ZERO;
+        }
+        if (paidAmount == null) {
+            paidAmount = BigDecimal.ZERO;
+        }
+        if (totalAmount == null) {
+            totalAmount = BigDecimal.ZERO;
+        }
 
-        this.balanceDue = totalAmount - discountAmount - paidAmount;
+        this.balanceDue = totalAmount.subtract(discountAmount).subtract(paidAmount);
     }
 
     public long getPendingTestCount() {

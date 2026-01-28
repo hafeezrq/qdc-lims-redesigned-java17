@@ -109,7 +109,8 @@ public class RevenueReportsController {
         if (amountCol != null) {
             amountCol.setCellValueFactory(data -> new SimpleStringProperty(
                     localeFormatService.formatCurrency(
-                            data.getValue().getTotalAmount() != null ? data.getValue().getTotalAmount() : 0.0)));
+                            data.getValue().getTotalAmount() != null ? data.getValue().getTotalAmount()
+                                    : java.math.BigDecimal.ZERO)));
         }
         if (statusCol != null) {
             statusCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getStatus()));
@@ -136,19 +137,20 @@ public class RevenueReportsController {
                 // Filter for outstanding payments if checkbox is selected
                 if (outstandingOnlyBox.isSelected()) {
                     orders = orders.stream()
-                            .filter(o -> o.getBalanceDue() > 0)
+                            .filter(o -> o.getBalanceDue() != null
+                                    && o.getBalanceDue().compareTo(java.math.BigDecimal.ZERO) > 0)
                             .toList();
                 }
 
-                double total = orders.stream()
-                        .mapToDouble(o -> o.getTotalAmount() != null ? o.getTotalAmount() : 0.0)
-                        .sum();
-                double totalPaid = orders.stream()
-                        .mapToDouble(o -> o.getPaidAmount() != null ? o.getPaidAmount() : 0.0)
-                        .sum();
-                double totalOutstanding = orders.stream()
-                        .mapToDouble(o -> o.getBalanceDue() != null ? o.getBalanceDue() : 0.0)
-                        .sum();
+                java.math.BigDecimal total = orders.stream()
+                        .map(o -> o.getTotalAmount() != null ? o.getTotalAmount() : java.math.BigDecimal.ZERO)
+                        .reduce(java.math.BigDecimal.ZERO, java.math.BigDecimal::add);
+                java.math.BigDecimal totalPaid = orders.stream()
+                        .map(o -> o.getPaidAmount() != null ? o.getPaidAmount() : java.math.BigDecimal.ZERO)
+                        .reduce(java.math.BigDecimal.ZERO, java.math.BigDecimal::add);
+                java.math.BigDecimal totalOutstanding = orders.stream()
+                        .map(o -> o.getBalanceDue() != null ? o.getBalanceDue() : java.math.BigDecimal.ZERO)
+                        .reduce(java.math.BigDecimal.ZERO, java.math.BigDecimal::add);
 
                 if (totalRevenueLabel != null) {
                     totalRevenueLabel.setText(localeFormatService.formatCurrency(total));
@@ -163,7 +165,10 @@ public class RevenueReportsController {
                     totalCountLabel.setText(String.valueOf(orders.size()));
                 }
                 if (averageOrderLabel != null) {
-                    double avg = orders.isEmpty() ? 0.0 : total / orders.size();
+                    java.math.BigDecimal avg = orders.isEmpty()
+                            ? java.math.BigDecimal.ZERO
+                            : total.divide(java.math.BigDecimal.valueOf(orders.size()), 4,
+                                    java.math.RoundingMode.HALF_UP);
                     averageOrderLabel.setText(localeFormatService.formatCurrency(avg));
                 }
                 if (periodLabel != null) {
@@ -213,16 +218,16 @@ public class RevenueReportsController {
 
     private void resetSummary() {
         if (totalRevenueLabel != null) {
-            totalRevenueLabel.setText(localeFormatService.formatCurrency(0.0));
+            totalRevenueLabel.setText(localeFormatService.formatCurrency(java.math.BigDecimal.ZERO));
         }
         if (totalPaidLabel != null) {
-            totalPaidLabel.setText(localeFormatService.formatCurrency(0.0));
+            totalPaidLabel.setText(localeFormatService.formatCurrency(java.math.BigDecimal.ZERO));
         }
         if (totalOutstandingLabel != null) {
-            totalOutstandingLabel.setText(localeFormatService.formatCurrency(0.0));
+            totalOutstandingLabel.setText(localeFormatService.formatCurrency(java.math.BigDecimal.ZERO));
         }
         if (averageOrderLabel != null) {
-            averageOrderLabel.setText(localeFormatService.formatCurrency(0.0));
+            averageOrderLabel.setText(localeFormatService.formatCurrency(java.math.BigDecimal.ZERO));
         }
         if (totalCountLabel != null) {
             totalCountLabel.setText("0");

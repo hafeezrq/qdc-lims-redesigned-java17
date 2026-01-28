@@ -5,7 +5,7 @@
 <?import javafx.scene.layout.*?>
 <?import javafx.scene.text.*?>
 
-<BorderPane xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1"
+<BorderPane xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
             fx:controller="com.qdc.lims.ui.controller.AdminDashboardController"
             fx:id="mainContainer"
             stylesheets="@/static/styles.css">
@@ -174,7 +174,7 @@
                 <!-- System Status -->
                 <VBox alignment="CENTER" spacing="10" style="-fx-background-color: white; -fx-padding: 20; -fx-background-radius: 10;">
                     <Label text="System Status: Connected to Database" style="-fx-text-fill: #27ae60; -fx-font-size: 12; -fx-font-weight: bold;"/>
-                    <Label text="Database: SQLite (embedded)" style="-fx-text-fill: #7f8c8d; -fx-font-size: 11;"/>
+                    <Label text="Database: PostgreSQL" style="-fx-text-fill: #7f8c8d; -fx-font-size: 11;"/>
                     <HBox spacing="10" alignment="CENTER">
                         <Label text="Need to do operational work?" style="-fx-text-fill: #7f8c8d; -fx-font-size: 11;"/>
                         <Label text="Switch to Lab or Reception dashboard using the switcher above" style="-fx-text-fill: #3498db; -fx-font-size: 11; -fx-font-weight: bold;"/>

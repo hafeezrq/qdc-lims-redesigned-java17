@@ -6,6 +6,7 @@ import com.qdc.lims.repository.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 /**
@@ -73,7 +74,7 @@ public class OrderService {
         order.setPatient(patient);
         order.setReferringDoctor(doctor);
 
-        java.math.BigDecimal totalAmount = java.math.BigDecimal.ZERO;
+        BigDecimal totalAmount = BigDecimal.ZERO;
 
         // --- NEW LOGIC: Expand panels to tests ---
         List<Long> testIds = request.testIds() != null ? request.testIds() : List.of();
@@ -119,21 +120,23 @@ public class OrderService {
             for (TestConsumption ingredient : recipe) {
                 InventoryItem item = ingredient.getItem();
 
-                double needed = ingredient.getQuantity();
-                double available = item.getCurrentStock();
+                BigDecimal needed = ingredient.getQuantity();
+                BigDecimal available = item.getCurrentStock();
 
                 // --- THE GUARD CHECK ---
-                if (available < needed) {
+                if (available == null || needed == null || available.compareTo(needed) < 0) {
                     throw new RuntimeException(
                             "❌ OUT OF STOCK: Test '" + test.getTestName() + "' requires "
-                                    + needed + " " + item.getUnit() + " of '" + item.getItemName() + "', "
-                                    + "but only " + available + " is available.");
+                                    + (needed == null ? "0" : needed.toPlainString()) + " " + item.getUnit()
+                                    + " of '" + item.getItemName() + "', "
+                                    + "but only " + (available == null ? "0" : available.toPlainString())
+                                    + " is available.");
                 }
                 // -----------------------
 
                 // Subtract Stock
-                double newStock = item.getCurrentStock() - ingredient.getQuantity();
-                if (newStock < 0) {
+                BigDecimal newStock = available.subtract(needed);
+                if (newStock.compareTo(BigDecimal.ZERO) < 0) {
                     throw new RuntimeException(
                             "❌ OUT OF STOCK: Not enough " + item.getItemName() + " to book this test.");
                 }
@@ -146,9 +149,9 @@ public class OrderService {
         }
 
         // --- NEW FINANCE LOGIC ---
-        order.setTotalAmount(totalAmount.doubleValue());
-        order.setDiscountAmount(request.discount() != null ? request.discount() : 0.0);
-        order.setPaidAmount(request.cashPaid() != null ? request.cashPaid() : 0.0);
+        order.setTotalAmount(totalAmount);
+        order.setDiscountAmount(request.discount() != null ? request.discount() : BigDecimal.ZERO);
+        order.setPaidAmount(request.cashPaid() != null ? request.cashPaid() : BigDecimal.ZERO);
 
         // Auto-calculate balance (Total - Discount - Paid)
         order.calculateBalance();
@@ -156,11 +159,13 @@ public class OrderService {
         LabOrder savedOrder = orderRepo.save(order);
 
         // 4. COMMISSION LOGIC (Secret Table)
-        if (doctor != null && doctor.getCommissionPercentage() > 0) {
+        if (doctor != null
+                && doctor.getCommissionPercentage() != null
+                && doctor.getCommissionPercentage().compareTo(BigDecimal.ZERO) > 0) {
             CommissionLedger ledger = new CommissionLedger();
             ledger.setLabOrder(savedOrder);
             ledger.setDoctor(doctor);
-            ledger.setTotalBillAmount(totalAmount.doubleValue());
+            ledger.setTotalBillAmount(totalAmount);
             commissionRepo.save(ledger);
         }
 

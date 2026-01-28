@@ -6,12 +6,12 @@ import java.nio.file.Paths;
 /**
  * Computes OS-appropriate, user-writable locations for application data.
  *
- * The app stores the SQLite database and backups outside the install directory,
+ * The app stores backups outside the install directory,
  * so upgrades won't delete user data.
  */
 public final class AppPaths {
 
-    private static final String APP_DIR_NAME = "QDC LIMS";
+    private static final String APP_DIR_NAME = "LIMS";
 
     private AppPaths() {
     }
@@ -33,11 +33,7 @@ public final class AppPaths {
         }
 
         // Linux / others
-        return Paths.get(userHome, ".local", "share", "qdc-lims");
-    }
-
-    public static Path databasePath() {
-        return appDataDir().resolve("data").resolve("qdc-lims.db");
+        return Paths.get(userHome, ".local", "share", "lims");
     }
 
     public static Path backupsDir() {

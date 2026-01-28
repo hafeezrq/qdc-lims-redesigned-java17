@@ -202,7 +202,6 @@ public class MainWindowController {
     }
 
     private void applyBrandingToLabels() {
-        String appName = brandingService.getApplicationName();
         String labName = brandingService.getLabNameOrAppName();
 
         if (appHeaderLabel != null) {

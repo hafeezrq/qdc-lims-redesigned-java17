@@ -5,12 +5,12 @@
 <?import javafx.scene.layout.*?>
 <?import javafx.scene.text.Font?>
 
-<BorderPane xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" 
+<BorderPane xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" 
             fx:controller="com.qdc.lims.ui.controller.ReferenceRangeController"
             prefHeight="500.0" prefWidth="700.0">
     
     <top>
-        <VBox style="-fx-background-color: #34495e; -fx-padding: 15;">
+        <VBox style="-fx-background-color: #34495e; -fx-padding: 15;" spacing="8">
             <Label text="Reference Ranges Management" textFill="WHITE">
                 <font>
                     <Font name="System Bold" size="18.0"/>
@@ -21,6 +21,7 @@
                     <Font size="14.0"/>
                 </font>
             </Label>
+            <ComboBox fx:id="testCombo" prefWidth="350" promptText="Select a test to manage ranges"/>
         </VBox>
     </top>
     

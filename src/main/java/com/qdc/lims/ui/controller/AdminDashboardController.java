@@ -5,7 +5,6 @@ import com.qdc.lims.ui.SessionManager;
 import com.qdc.lims.ui.navigation.DashboardSwitchService;
 import com.qdc.lims.ui.navigation.DashboardType;
 import com.qdc.lims.ui.util.LogoutUtil;
-import com.qdc.lims.repository.LabOrderRepository;
 import com.qdc.lims.service.AdminDashboardStatsService;
 import com.qdc.lims.service.BrandingService;
 import com.qdc.lims.service.LocaleFormatService;
@@ -38,7 +37,6 @@ import java.time.LocalDateTime;
 public class AdminDashboardController {
 
     private final ApplicationContext applicationContext;
-    private final LabOrderRepository labOrderRepository;
     private final DashboardNavigator navigator;
     private final DashboardSwitchService dashboardSwitchService;
     private final AdminDashboardStatsService statsService;
@@ -72,14 +70,12 @@ public class AdminDashboardController {
     private Label totalTestsLabel;
 
     public AdminDashboardController(ApplicationContext applicationContext,
-            LabOrderRepository labOrderRepository,
             DashboardNavigator navigator,
             DashboardSwitchService dashboardSwitchService,
             AdminDashboardStatsService statsService,
             BrandingService brandingService,
             LocaleFormatService localeFormatService) {
         this.applicationContext = applicationContext;
-        this.labOrderRepository = labOrderRepository;
         this.navigator = navigator;
         this.dashboardSwitchService = dashboardSwitchService;
         this.statsService = statsService;

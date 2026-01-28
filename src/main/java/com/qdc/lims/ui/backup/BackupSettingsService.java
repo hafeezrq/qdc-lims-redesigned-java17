@@ -79,7 +79,7 @@ public class BackupSettingsService {
         // This is not equivalent to OS keychain security.
         String material = System.getProperty("user.name", "") + "|" +
                 System.getProperty("os.name", "") + "|" +
-                System.getProperty("user.home", "") + "|QDC-LIMS";
+                System.getProperty("user.home", "") + "|LIMS";
         MessageDigest sha = MessageDigest.getInstance("SHA-256");
         byte[] keyBytes = sha.digest(material.getBytes(StandardCharsets.UTF_8));
         return new SecretKeySpec(keyBytes, 0, 32, "AES");

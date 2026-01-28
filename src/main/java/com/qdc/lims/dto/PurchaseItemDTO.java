@@ -1,5 +1,7 @@
 package com.qdc.lims.dto;
 
+import java.math.BigDecimal;
+
 /**
  * DTO for representing a purchase item in an order.
  *
@@ -9,6 +11,6 @@ package com.qdc.lims.dto;
  */
 public record PurchaseItemDTO(
         Long itemId,
-        Double quantity,
-        Double costPrice) {
+        BigDecimal quantity,
+        BigDecimal costPrice) {
 }

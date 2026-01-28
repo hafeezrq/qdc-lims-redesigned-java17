@@ -3,8 +3,11 @@ package com.qdc.lims.ui.controller;
 import com.qdc.lims.ui.SessionManager;
 import com.qdc.lims.entity.LabOrder;
 import com.qdc.lims.entity.LabResult;
+import com.qdc.lims.entity.ReferenceRange;
+import com.qdc.lims.entity.TestDefinition;
 import com.qdc.lims.repository.LabOrderRepository;
 import com.qdc.lims.repository.LabResultRepository;
+import com.qdc.lims.repository.ReferenceRangeRepository;
 import com.qdc.lims.service.LocaleFormatService;
 import com.qdc.lims.service.ResultService;
 import javafx.application.Platform;
@@ -70,16 +73,19 @@ public class ResultEntryController {
     private final LabResultRepository resultRepository;
     private final ResultService resultService;
     private final LocaleFormatService localeFormatService;
+    private final ReferenceRangeRepository referenceRangeRepository;
     private LabOrder currentOrder;
 
     public ResultEntryController(LabOrderRepository orderRepository,
             LabResultRepository resultRepository,
             ResultService resultService,
-            LocaleFormatService localeFormatService) {
+            LocaleFormatService localeFormatService,
+            ReferenceRangeRepository referenceRangeRepository) {
         this.orderRepository = orderRepository;
         this.resultRepository = resultRepository;
         this.resultService = resultService;
         this.localeFormatService = localeFormatService;
+        this.referenceRangeRepository = referenceRangeRepository;
     }
 
     public void setOrder(LabOrder order) {
@@ -230,11 +236,17 @@ public class ResultEntryController {
 
         // 4. REFERENCE RANGE COLUMN
         referenceRangeColumn.setCellValueFactory(cellData -> {
-            var test = cellData.getValue().getTestDefinition();
-            if (test.getMinRange() != null && test.getMaxRange() != null) {
-                return new SimpleStringProperty(test.getMinRange() + " - " + test.getMaxRange());
+            TestDefinition test = cellData.getValue().getTestDefinition();
+            ReferenceRange range = findMatchingRange(test, currentOrder != null ? currentOrder.getPatient() : null);
+            if (range == null) {
+                return new SimpleStringProperty("N/A");
             }
-            return new SimpleStringProperty("N/A");
+            String min = range.getMinVal() != null ? localeFormatService.formatNumber(range.getMinVal()) : "";
+            String max = range.getMaxVal() != null ? localeFormatService.formatNumber(range.getMaxVal()) : "";
+            if (min.isEmpty() && max.isEmpty()) {
+                return new SimpleStringProperty("N/A");
+            }
+            return new SimpleStringProperty(min + " - " + max);
         });
 
         // 5. STATUS COLUMN
@@ -321,13 +333,14 @@ public class ResultEntryController {
 
         try {
             java.math.BigDecimal numValue = new java.math.BigDecimal(value.trim());
-            var test = result.getTestDefinition();
+            TestDefinition test = result.getTestDefinition();
+            ReferenceRange range = findMatchingRange(test, currentOrder != null ? currentOrder.getPatient() : null);
 
-            if (test.getMinRange() != null && test.getMaxRange() != null) {
-                if (numValue.compareTo(test.getMinRange()) < 0) {
+            if (range != null && range.getMinVal() != null && range.getMaxVal() != null) {
+                if (numValue.compareTo(range.getMinVal()) < 0) {
                     result.setAbnormal(true);
                     result.setRemarks("LOW");
-                } else if (numValue.compareTo(test.getMaxRange()) > 0) {
+                } else if (numValue.compareTo(range.getMaxVal()) > 0) {
                     result.setAbnormal(true);
                     result.setRemarks("HIGH");
                 } else {
@@ -340,6 +353,76 @@ public class ResultEntryController {
             result.setAbnormal(false);
             result.setRemarks("");
         }
+    }
+
+    private ReferenceRange findMatchingRange(TestDefinition test, com.qdc.lims.entity.Patient patient) {
+        if (test == null || test.getId() == null) {
+            return null;
+        }
+        var ranges = referenceRangeRepository.findByTestId(test.getId());
+        if (ranges == null || ranges.isEmpty()) {
+            return null;
+        }
+        Integer age = patient != null ? patient.getAge() : null;
+        String gender = patient != null ? patient.getGender() : null;
+
+        return ranges.stream()
+                .filter(range -> matchesRange(range, age, gender))
+                .sorted((a, b) -> {
+                    int genderScoreA = genderScore(a, gender);
+                    int genderScoreB = genderScore(b, gender);
+                    if (genderScoreA != genderScoreB) {
+                        return Integer.compare(genderScoreB, genderScoreA);
+                    }
+                    Integer minA = a.getMinAge();
+                    Integer minB = b.getMinAge();
+                    if (minA == null && minB == null) {
+                        return 0;
+                    }
+                    if (minA == null) {
+                        return 1;
+                    }
+                    if (minB == null) {
+                        return -1;
+                    }
+                    return Integer.compare(minA, minB);
+                })
+                .findFirst()
+                .orElse(null);
+    }
+
+    private boolean matchesRange(ReferenceRange range, Integer age, String gender) {
+        if (range == null) {
+            return false;
+        }
+        String rangeGender = range.getGender();
+        if (gender != null && rangeGender != null && !"Both".equalsIgnoreCase(rangeGender)
+                && !rangeGender.equalsIgnoreCase(gender)) {
+            return false;
+        }
+        if (age != null) {
+            if (range.getMinAge() != null && age < range.getMinAge()) {
+                return false;
+            }
+            if (range.getMaxAge() != null && age > range.getMaxAge()) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private int genderScore(ReferenceRange range, String gender) {
+        if (range == null) {
+            return 0;
+        }
+        String rangeGender = range.getGender();
+        if (gender != null && rangeGender != null && rangeGender.equalsIgnoreCase(gender)) {
+            return 2;
+        }
+        if (rangeGender != null && "Both".equalsIgnoreCase(rangeGender)) {
+            return 1;
+        }
+        return 0;
     }
 
     @FXML

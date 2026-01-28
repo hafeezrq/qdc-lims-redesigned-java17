@@ -21,6 +21,7 @@ import javafx.stage.Stage;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -137,15 +138,15 @@ public class FinancialQueriesController {
 
         // 1. Patient Income (Lab Orders)
         List<LabOrder> orders = orderRepository.findByOrderDateBetween(start.atStartOfDay(), end.atTime(23, 59, 59));
-        double patientIncome = 0;
+        BigDecimal patientIncome = BigDecimal.ZERO;
         int patientCount = 0;
         for (LabOrder o : orders) {
-            if (o.getPaidAmount() > 0) {
-                patientIncome += o.getPaidAmount();
+            if (o.getPaidAmount() != null && o.getPaidAmount().compareTo(BigDecimal.ZERO) > 0) {
+                patientIncome = patientIncome.add(o.getPaidAmount());
                 patientCount++;
             }
         }
-        if (patientIncome > 0) {
+        if (patientIncome.compareTo(BigDecimal.ZERO) > 0) {
             summaryMap.put("Patient Services",
                     new FinancialCategorySummary("Patient Services", "INCOME", patientCount, patientIncome));
         }
@@ -155,77 +156,79 @@ public class FinancialQueriesController {
                 end.atTime(23, 59, 59));
         for (Payment p : payments) {
             String cat = p.getCategory() != null ? p.getCategory() : "Misc";
-            summaryMap.putIfAbsent(cat, new FinancialCategorySummary(cat, p.getType(), 0, 0.0));
+            summaryMap.putIfAbsent(cat, new FinancialCategorySummary(cat, p.getType(), 0, BigDecimal.ZERO));
             FinancialCategorySummary s = summaryMap.get(cat);
             s.setCount(s.getCount() + 1);
-            s.setTotalAmount(s.getTotalAmount() + p.getAmount());
+            BigDecimal amount = p.getAmount() != null ? p.getAmount() : BigDecimal.ZERO;
+            s.setTotalAmount(s.getTotalAmount().add(amount));
         }
 
         // 3. Doctor Commissions (Paid)
         List<CommissionLedger> commissions = commissionRepository.findByTransactionDateBetween(start, end);
-        double commTotal = 0;
+        BigDecimal commTotal = BigDecimal.ZERO;
         int commCount = 0;
         for (CommissionLedger c : commissions) {
             if ("PAID".equals(c.getStatus())) {
-                commTotal += getCommissionAmount(c);
+                commTotal = commTotal.add(getCommissionAmount(c));
                 commCount++;
             }
         }
-        if (commTotal > 0) {
+        if (commTotal.compareTo(BigDecimal.ZERO) > 0) {
             summaryMap.put("Doctor Commissions",
                     new FinancialCategorySummary("Doctor Commissions", "EXPENSE", commCount, commTotal));
         }
 
         // 4. Supplier Payments
         List<SupplierLedger> supplierTxs = supplierRepository.findByTransactionDateBetween(start, end);
-        double supTotal = 0;
+        BigDecimal supTotal = BigDecimal.ZERO;
         int supCount = 0;
         for (SupplierLedger s : supplierTxs) {
-            if (s.getPaidAmount() > 0) {
-                supTotal += s.getPaidAmount();
+            if (s.getPaidAmount() != null && s.getPaidAmount().compareTo(BigDecimal.ZERO) > 0) {
+                supTotal = supTotal.add(s.getPaidAmount());
                 supCount++;
             }
         }
-        if (supTotal > 0) {
+        if (supTotal.compareTo(BigDecimal.ZERO) > 0) {
             summaryMap.put("Supplier Payments",
                     new FinancialCategorySummary("Supplier Payments", "EXPENSE", supCount, supTotal));
         }
 
         // Liabilities & Receivables (point-in-time)
-        double patientReceivable = orders.stream()
-                .mapToDouble(o -> o.getBalanceDue() != null ? o.getBalanceDue() : 0.0)
-                .sum();
+        BigDecimal patientReceivable = orders.stream()
+                .map(o -> o.getBalanceDue() != null ? o.getBalanceDue() : BigDecimal.ZERO)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        double unpaidCommission = commissions.stream()
+        BigDecimal unpaidCommission = commissions.stream()
                 .filter(c -> !"PAID".equals(c.getStatus()))
-                .mapToDouble(c -> {
-                    double calculated = getCommissionAmount(c);
-                    double paid = c.getPaidAmount() != null ? c.getPaidAmount() : 0.0;
-                    return Math.max(0.0, calculated - paid);
+                .map(c -> {
+                    BigDecimal calculated = getCommissionAmount(c);
+                    BigDecimal paid = c.getPaidAmount() != null ? c.getPaidAmount() : BigDecimal.ZERO;
+                    return calculated.subtract(paid).max(BigDecimal.ZERO);
                 })
-                .sum();
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        double supplierPayable = supplierTxs.stream()
-                .mapToDouble(s -> {
-                    double bill = s.getBillAmount() != null ? s.getBillAmount() : 0.0;
-                    double paid = s.getPaidAmount() != null ? s.getPaidAmount() : 0.0;
-                    double balance = bill - paid;
-                    return Math.max(0.0, balance);
+        BigDecimal supplierPayable = supplierTxs.stream()
+                .map(s -> {
+                    BigDecimal bill = s.getBillAmount() != null ? s.getBillAmount() : BigDecimal.ZERO;
+                    BigDecimal paid = s.getPaidAmount() != null ? s.getPaidAmount() : BigDecimal.ZERO;
+                    return bill.subtract(paid).max(BigDecimal.ZERO);
                 })
-                .sum();
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         // Update UI
         List<FinancialCategorySummary> list = new ArrayList<>(summaryMap.values());
         categoryTable.setItems(FXCollections.observableArrayList(list));
 
-        double totalIncome = list.stream().filter(s -> "INCOME".equals(s.getType()))
-                .mapToDouble(FinancialCategorySummary::getTotalAmount).sum();
-        double totalExpense = list.stream().filter(s -> "EXPENSE".equals(s.getType()))
-                .mapToDouble(FinancialCategorySummary::getTotalAmount).sum();
+        BigDecimal totalIncome = list.stream().filter(s -> "INCOME".equals(s.getType()))
+                .map(FinancialCategorySummary::getTotalAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal totalExpense = list.stream().filter(s -> "EXPENSE".equals(s.getType()))
+                .map(FinancialCategorySummary::getTotalAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         totalIncomeLabel.setText(localeFormatService.formatCurrency(totalIncome));
         totalExpenseLabel.setText(localeFormatService.formatCurrency(totalExpense));
-        netProfitLabel.setText(localeFormatService.formatCurrency(totalIncome - totalExpense));
+        netProfitLabel.setText(localeFormatService.formatCurrency(totalIncome.subtract(totalExpense)));
         if (patientReceivableLabel != null) {
             patientReceivableLabel.setText(localeFormatService.formatCurrency(patientReceivable));
         }
@@ -239,7 +242,8 @@ public class FinancialQueriesController {
         // Pie Chart (Expenses Only)
         ObservableList<PieChart.Data> pieData = FXCollections.observableArrayList();
         list.stream().filter(s -> "EXPENSE".equals(s.getType()))
-                .forEach(s -> pieData.add(new PieChart.Data(s.getCategory(), s.getTotalAmount())));
+                .forEach(s -> pieData.add(new PieChart.Data(s.getCategory(),
+                        s.getTotalAmount() != null ? s.getTotalAmount().doubleValue() : 0.0)));
         expenseChart.setData(pieData);
     }
 
@@ -255,17 +259,19 @@ public class FinancialQueriesController {
      * Calculates a commission amount from the underlying doctor rate and lab order
      * total.
      */
-    private double getCommissionAmount(CommissionLedger commission) {
+    private BigDecimal getCommissionAmount(CommissionLedger commission) {
         if (commission.getDoctor() == null || commission.getDoctor().getCommissionPercentage() == null) {
-            return 0.0;
+            return BigDecimal.ZERO;
         }
-        double rate = commission.getDoctor().getCommissionPercentage();
-        if (rate <= 0.0) {
-            return 0.0;
+        BigDecimal rate = commission.getDoctor().getCommissionPercentage();
+        if (rate.compareTo(BigDecimal.ZERO) <= 0) {
+            return BigDecimal.ZERO;
         }
         if (commission.getLabOrder() == null || commission.getLabOrder().getTotalAmount() == null) {
-            return 0.0;
+            return BigDecimal.ZERO;
         }
-        return commission.getLabOrder().getTotalAmount() * (rate / 100.0);
+        return commission.getLabOrder().getTotalAmount()
+                .multiply(rate)
+                .divide(BigDecimal.valueOf(100), 4, java.math.RoundingMode.HALF_UP);
     }
 }

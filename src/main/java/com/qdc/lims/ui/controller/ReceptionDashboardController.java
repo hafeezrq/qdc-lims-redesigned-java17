@@ -12,8 +12,8 @@ import com.qdc.lims.entity.ReferenceRange;
 import com.qdc.lims.entity.TestDefinition;
 import com.qdc.lims.entity.User; // <--- ADDED THIS IMPORT TO FIX THE ERROR
 import com.qdc.lims.repository.LabOrderRepository;
+import com.qdc.lims.repository.ReferenceRangeRepository;
 import com.qdc.lims.service.LocaleFormatService;
-import org.hibernate.Hibernate;
 import javafx.animation.Animation;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
@@ -64,6 +64,7 @@ public class ReceptionDashboardController {
 
     private final ApplicationContext applicationContext;
     private final LabOrderRepository labOrderRepository;
+    private final ReferenceRangeRepository referenceRangeRepository;
     private final DashboardSwitchService dashboardSwitchService;
     private final BrandingService brandingService;
     private final LocaleFormatService localeFormatService;
@@ -160,11 +161,13 @@ public class ReceptionDashboardController {
 
     public ReceptionDashboardController(ApplicationContext applicationContext,
             LabOrderRepository labOrderRepository,
+            ReferenceRangeRepository referenceRangeRepository,
             DashboardSwitchService dashboardSwitchService,
             BrandingService brandingService,
             LocaleFormatService localeFormatService) {
         this.applicationContext = applicationContext;
         this.labOrderRepository = labOrderRepository;
+        this.referenceRangeRepository = referenceRangeRepository;
         this.dashboardSwitchService = dashboardSwitchService;
         this.brandingService = brandingService;
         this.localeFormatService = localeFormatService;
@@ -299,9 +302,10 @@ public class ReceptionDashboardController {
                     dt != null ? localeFormatService.formatDateTime(dt) : "-");
         });
         readyBalanceCol.setCellValueFactory(data -> {
-            Double balance = data.getValue().getBalanceDue();
-            if (balance == null || balance <= 0)
+            java.math.BigDecimal balance = data.getValue().getBalanceDue();
+            if (balance == null || balance.compareTo(java.math.BigDecimal.ZERO) <= 0) {
                 return new SimpleStringProperty("PAID");
+            }
             return new SimpleStringProperty(localeFormatService.formatCurrency(balance));
         });
 
@@ -635,8 +639,8 @@ public class ReceptionDashboardController {
     }
 
     private void deliverReport(LabOrder order) {
-        Double balance = order.getBalanceDue();
-        if (balance != null && balance > 0) {
+        java.math.BigDecimal balance = order.getBalanceDue();
+        if (balance != null && balance.compareTo(java.math.BigDecimal.ZERO) > 0) {
             boolean paid = showPaymentDialog(order);
             if (!paid)
                 return;
@@ -673,10 +677,11 @@ public class ReceptionDashboardController {
         Optional<ButtonType> result = dialog.showAndWait();
         if (result.isPresent() && result.get() == ButtonType.OK) {
             try {
-                double payment = localeFormatService.parseNumber(paymentField.getText());
-                if (payment > 0) {
-                    Double currentPaid = order.getPaidAmount() != null ? order.getPaidAmount() : 0;
-                    order.setPaidAmount(currentPaid + payment);
+                java.math.BigDecimal payment = localeFormatService.parseNumber(paymentField.getText());
+                if (payment.compareTo(java.math.BigDecimal.ZERO) > 0) {
+                    java.math.BigDecimal currentPaid = order.getPaidAmount() != null ? order.getPaidAmount()
+                            : java.math.BigDecimal.ZERO;
+                    order.setPaidAmount(currentPaid.add(payment));
                     order.calculateBalance();
                     try {
                         labOrderRepository.save(order);
@@ -707,8 +712,6 @@ public class ReceptionDashboardController {
         Patient patient = order.getPatient();
         String patientName = patient != null && patient.getFullName() != null ? patient.getFullName() : "-";
         String patientMrn = patient != null && patient.getMrn() != null ? patient.getMrn() : "-";
-        String patientAge = patient != null ? String.valueOf(patient.getAge()) : "-";
-        String patientGender = patient != null && patient.getGender() != null ? patient.getGender() : "-";
         content.getChildren().add(new Label("Patient: " + patientName));
         content.getChildren().add(new Label("MRN: " + patientMrn));
         content.getChildren().add(new Separator());
@@ -730,12 +733,15 @@ public class ReceptionDashboardController {
         }
         content.getChildren().add(new Separator());
 
-        String paymentStatus = (order.getBalanceDue() == null || order.getBalanceDue() <= 0) ? "FULLY PAID"
-                : "Balance Due: " + localeFormatService.formatCurrency(order.getBalanceDue());
+        String paymentStatus = (order.getBalanceDue() == null
+                || order.getBalanceDue().compareTo(java.math.BigDecimal.ZERO) <= 0)
+                        ? "FULLY PAID"
+                        : "Balance Due: " + localeFormatService.formatCurrency(order.getBalanceDue());
         Label paymentLabel = new Label("Payment Status: " + paymentStatus);
-        paymentLabel.setStyle((order.getBalanceDue() == null || order.getBalanceDue() <= 0)
-                ? "-fx-text-fill: #27ae60; -fx-font-weight: bold;"
-                : "-fx-text-fill: #e74c3c; -fx-font-weight: bold;");
+        paymentLabel.setStyle((order.getBalanceDue() == null
+                || order.getBalanceDue().compareTo(java.math.BigDecimal.ZERO) <= 0)
+                        ? "-fx-text-fill: #27ae60; -fx-font-weight: bold;"
+                        : "-fx-text-fill: #e74c3c; -fx-font-weight: bold;");
         content.getChildren().add(paymentLabel);
 
         dialog.getDialogPane().setContent(content);
@@ -1057,32 +1063,57 @@ public class ReceptionDashboardController {
         Integer age = patient != null ? patient.getAge() : null;
         String gender = patient != null ? patient.getGender() : null;
 
-        if (test.getRanges() != null && Hibernate.isInitialized(test.getRanges())) {
-            if (test.getRanges().isEmpty()) {
-                return "-";
-            }
-            for (ReferenceRange range : test.getRanges()) {
-                if (!matchesRange(range, age, gender)) {
-                    continue;
-                }
-                String min = range.getMinVal() != null
-                        ? localeFormatService.formatNumber(range.getMinVal().doubleValue())
-                        : null;
-                String max = range.getMaxVal() != null
-                        ? localeFormatService.formatNumber(range.getMaxVal().doubleValue())
-                        : null;
-                return formatMinMax(min, max);
-            }
-            return "-";
+        ReferenceRange matchingRange = findMatchingRange(test, age, gender);
+        if (matchingRange != null) {
+            String min = matchingRange.getMinVal() != null
+                    ? localeFormatService.formatNumber(matchingRange.getMinVal())
+                    : null;
+            String max = matchingRange.getMaxVal() != null
+                    ? localeFormatService.formatNumber(matchingRange.getMaxVal())
+                    : null;
+            return formatMinMax(min, max);
         }
 
         String min = test.getMinRange() != null
-                ? localeFormatService.formatNumber(test.getMinRange().doubleValue())
+                ? localeFormatService.formatNumber(test.getMinRange())
                 : null;
         String max = test.getMaxRange() != null
-                ? localeFormatService.formatNumber(test.getMaxRange().doubleValue())
+                ? localeFormatService.formatNumber(test.getMaxRange())
                 : null;
         return formatMinMax(min, max);
+    }
+
+    private ReferenceRange findMatchingRange(TestDefinition test, Integer age, String gender) {
+        if (test == null || test.getId() == null) {
+            return null;
+        }
+        var ranges = referenceRangeRepository.findByTestId(test.getId());
+        if (ranges == null || ranges.isEmpty()) {
+            return null;
+        }
+        return ranges.stream()
+                .filter(range -> matchesRange(range, age, gender))
+                .sorted((a, b) -> {
+                    int genderScoreA = genderScore(a, gender);
+                    int genderScoreB = genderScore(b, gender);
+                    if (genderScoreA != genderScoreB) {
+                        return Integer.compare(genderScoreB, genderScoreA);
+                    }
+                    Integer minA = a.getMinAge();
+                    Integer minB = b.getMinAge();
+                    if (minA == null && minB == null) {
+                        return 0;
+                    }
+                    if (minA == null) {
+                        return 1;
+                    }
+                    if (minB == null) {
+                        return -1;
+                    }
+                    return Integer.compare(minA, minB);
+                })
+                .findFirst()
+                .orElse(null);
     }
 
     private boolean matchesRange(ReferenceRange range, Integer age, String gender) {
@@ -1102,6 +1133,20 @@ public class ReceptionDashboardController {
             }
         }
         return true;
+    }
+
+    private int genderScore(ReferenceRange range, String gender) {
+        if (range == null) {
+            return 0;
+        }
+        String rangeGender = range.getGender();
+        if (gender != null && rangeGender != null && rangeGender.equalsIgnoreCase(gender)) {
+            return 2;
+        }
+        if (rangeGender != null && "Both".equalsIgnoreCase(rangeGender)) {
+            return 1;
+        }
+        return 0;
     }
 
     private String formatMinMax(String min, String max) {
@@ -1200,7 +1245,7 @@ public class ReceptionDashboardController {
     private TextFlow createReceiptContent(LabOrder order) {
         TextFlow flow = new TextFlow();
         Patient patient = order.getPatient();
-        Text header = new Text("QDC LABORATORY - RECEIPT\n\n");
+        Text header = new Text("LIMS LABORATORY - RECEIPT\n\n");
         header.setStyle("-fx-font-size: 16; -fx-font-weight: bold;");
 
         Text orderInfo = new Text("Order #: " + order.getId() + "\n" +
@@ -1215,8 +1260,8 @@ public class ReceptionDashboardController {
                     tests.append(result.getTestDefinition().getTestName()).append(" - ")
                             .append(localeFormatService.formatCurrency(
                                     result.getTestDefinition().getPrice() != null
-                                            ? result.getTestDefinition().getPrice().doubleValue()
-                                            : 0.0))
+                                            ? result.getTestDefinition().getPrice()
+                                            : java.math.BigDecimal.ZERO))
                             .append("\n");
                 }
             }
@@ -1224,10 +1269,14 @@ public class ReceptionDashboardController {
         tests.append("-".repeat(30)).append("\n\n");
         Text testsText = new Text(tests.toString());
 
-        Double total = order.getTotalAmount() != null ? order.getTotalAmount() : 0;
-        Double discount = order.getDiscountAmount() != null ? order.getDiscountAmount() : 0;
-        Double paid = order.getPaidAmount() != null ? order.getPaidAmount() : 0;
-        Double balance = order.getBalanceDue() != null ? order.getBalanceDue() : 0;
+        java.math.BigDecimal total = order.getTotalAmount() != null ? order.getTotalAmount()
+                : java.math.BigDecimal.ZERO;
+        java.math.BigDecimal discount = order.getDiscountAmount() != null ? order.getDiscountAmount()
+                : java.math.BigDecimal.ZERO;
+        java.math.BigDecimal paid = order.getPaidAmount() != null ? order.getPaidAmount()
+                : java.math.BigDecimal.ZERO;
+        java.math.BigDecimal balance = order.getBalanceDue() != null ? order.getBalanceDue()
+                : java.math.BigDecimal.ZERO;
 
         Text billing = new Text("Total Amount: " + localeFormatService.formatCurrency(total) + "\n" +
                 "Discount: " + localeFormatService.formatCurrency(discount) + "\n" +
@@ -1300,22 +1349,22 @@ public class ReceptionDashboardController {
         totalCol.setCellValueFactory(data -> new SimpleStringProperty(
                 data.getValue() != null && data.getValue().getTotalAmount() != null
                         ? localeFormatService.formatCurrency(data.getValue().getTotalAmount())
-                        : localeFormatService.formatCurrency(0.0)));
+                        : localeFormatService.formatCurrency(java.math.BigDecimal.ZERO)));
 
         TableColumn<LabOrder, String> paidCol = new TableColumn<>("Paid");
         paidCol.setCellValueFactory(data -> new SimpleStringProperty(
                 data.getValue() != null && data.getValue().getPaidAmount() != null
                         ? localeFormatService.formatCurrency(data.getValue().getPaidAmount())
-                        : localeFormatService.formatCurrency(0.0)));
+                        : localeFormatService.formatCurrency(java.math.BigDecimal.ZERO)));
 
         TableColumn<LabOrder, String> balanceCol = new TableColumn<>("Balance");
         balanceCol.setCellValueFactory(data -> new SimpleStringProperty(
                 data.getValue() != null && data.getValue().getBalanceDue() != null
                         ? localeFormatService.formatCurrency(data.getValue().getBalanceDue())
-                        : localeFormatService.formatCurrency(0.0)));
+                        : localeFormatService.formatCurrency(java.math.BigDecimal.ZERO)));
 
-        table.getColumns().addAll(idCol, dateCol, patientCol, mrnCol, totalCol, paidCol, balanceCol);
-        table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
+        table.getColumns().setAll(List.of(idCol, dateCol, patientCol, mrnCol, totalCol, paidCol, balanceCol));
+        table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
 
         ObservableList<LabOrder> rows = FXCollections.observableArrayList();
         table.setItems(rows);
