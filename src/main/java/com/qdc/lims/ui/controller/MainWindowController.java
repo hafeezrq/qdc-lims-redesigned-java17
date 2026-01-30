@@ -232,7 +232,10 @@ public class MainWindowController {
                     if (!firstRunPromptShown) {
                         firstRunPromptShown = true;
                         Platform.runLater(() -> {
-                            ensureAdminAccount(stage);
+                            boolean adminReady = ensureAdminAccount(stage);
+                            if (!adminReady) {
+                                return;
+                            }
                             handleFirstRun(stage);
                         });
                     }
@@ -246,52 +249,112 @@ public class MainWindowController {
         if (brandingService.isLabProfileComplete()) {
             return;
         }
+        boolean introShown = false;
+        while (!brandingService.isLabProfileComplete()) {
+            if (!introShown) {
+                Alert intro = new Alert(Alert.AlertType.INFORMATION);
+                intro.setTitle("Welcome");
+                intro.setHeaderText("Complete Lab Setup");
+                intro.setContentText("Please enter your lab details. These will be used across the system and reports.");
+                intro.showAndWait();
+                introShown = true;
+            }
 
-        Alert intro = new Alert(Alert.AlertType.INFORMATION);
-        intro.setTitle("Welcome");
-        intro.setHeaderText("Complete Lab Setup");
-        intro.setContentText("Please enter your lab details. These will be used across the system and reports.");
-        intro.showAndWait();
+            openFirstRunSetupDialog(owner);
 
-        openFirstRunSetupDialog(owner);
+            configService.refreshCache();
+            applyBrandingToLabels();
+            brandingService.refreshAllTaggedStageTitles();
 
-        configService.refreshCache();
-        applyBrandingToLabels();
-        brandingService.refreshAllTaggedStageTitles();
+            if (brandingService.isLabProfileComplete()) {
+                return;
+            }
 
-        if (!brandingService.isLabProfileComplete()) {
             Alert reminder = new Alert(Alert.AlertType.WARNING);
             reminder.setTitle("Setup Incomplete");
             reminder.setHeaderText("Lab details are still incomplete");
-            reminder.setContentText("You can continue, but branding and reports may be missing lab information.");
+            reminder.setContentText("You must complete lab information before using the system.");
             reminder.showAndWait();
+
+            Alert confirmExit = new Alert(Alert.AlertType.CONFIRMATION);
+            confirmExit.setTitle("Exit Application");
+            confirmExit.setHeaderText("Exit without completing lab setup?");
+            confirmExit.setContentText("Lab information is required to use the system.\n\nExit now?");
+            java.util.Optional<javafx.scene.control.ButtonType> result = confirmExit.showAndWait();
+            if (result.isPresent() && result.get() == javafx.scene.control.ButtonType.OK) {
+                Platform.exit();
+                return;
+            }
+            // If not exiting, loop and re-open lab setup dialog.
         }
     }
 
-    private void ensureAdminAccount(Stage owner) {
+    private boolean ensureAdminAccount(Stage owner) {
         if (userRepository.count() > 0) {
-            return;
+            return true;
         }
 
-        Alert intro = new Alert(Alert.AlertType.INFORMATION);
-        intro.setTitle("First-Time Setup");
-        intro.setHeaderText("Create Administrator Account");
-        intro.setContentText("No users exist yet. Please create the administrator account to continue.");
-        intro.showAndWait();
+        boolean introAccepted = false;
+        while (userRepository.count() == 0) {
+            if (!introAccepted) {
+                if (!showAdminIntroOrExit()) {
+                    return false;
+                }
+                introAccepted = true;
+            }
 
-        boolean created = showAdminSetupDialog(owner);
-        if (created) {
-            Alert success = new Alert(Alert.AlertType.INFORMATION);
-            success.setTitle("Administrator Created");
-            success.setHeaderText("Admin account created");
-            success.setContentText("Please log in with the new admin account to continue setup.");
-            success.showAndWait();
-        } else {
+            boolean created = showAdminSetupDialog(owner);
+            if (created) {
+                Alert success = new Alert(Alert.AlertType.INFORMATION);
+                success.setTitle("Administrator Created");
+                success.setHeaderText("Admin account created");
+                success.setContentText("Please log in with the new admin account to continue setup.");
+                success.showAndWait();
+                return true;
+            }
+
             Alert warning = new Alert(Alert.AlertType.WARNING);
             warning.setTitle("Administrator Required");
             warning.setHeaderText("Setup incomplete");
             warning.setContentText("You must create an administrator account before using the system.");
             warning.showAndWait();
+
+            Alert confirmExit = new Alert(Alert.AlertType.CONFIRMATION);
+            confirmExit.setTitle("Exit Application");
+            confirmExit.setHeaderText("Exit without administrator setup?");
+            confirmExit.setContentText("The application cannot be used until an administrator is created.\n\nExit now?");
+            java.util.Optional<javafx.scene.control.ButtonType> result = confirmExit.showAndWait();
+            if (result.isPresent() && result.get() == javafx.scene.control.ButtonType.OK) {
+                Platform.exit();
+                return false;
+            }
+            // If not exiting, loop and re-open admin setup dialog.
+        }
+
+        return true;
+    }
+
+    private boolean showAdminIntroOrExit() {
+        while (true) {
+            Alert intro = new Alert(Alert.AlertType.INFORMATION);
+            intro.setTitle("First-Time Setup");
+            intro.setHeaderText("Create Administrator Account");
+            intro.setContentText("No users exist yet. Please create the administrator account to continue.");
+            java.util.Optional<javafx.scene.control.ButtonType> result = intro.showAndWait();
+            if (result.isPresent() && result.get() == javafx.scene.control.ButtonType.OK) {
+                return true;
+            }
+
+            Alert confirmExit = new Alert(Alert.AlertType.CONFIRMATION);
+            confirmExit.setTitle("Exit Application");
+            confirmExit.setHeaderText("Exit without administrator setup?");
+            confirmExit.setContentText("The application cannot be used until an administrator is created.\n\nExit now?");
+            java.util.Optional<javafx.scene.control.ButtonType> exitResult = confirmExit.showAndWait();
+            if (exitResult.isPresent() && exitResult.get() == javafx.scene.control.ButtonType.OK) {
+                Platform.exit();
+                return false;
+            }
+            // If not exiting, re-show the intro until OK is pressed.
         }
     }
 
@@ -436,6 +499,19 @@ public class MainWindowController {
             stage.setMinWidth(800);
             stage.setMinHeight(600);
             stage.centerOnScreen();
+            stage.setOnCloseRequest(event -> {
+                configService.refreshCache();
+                if (!brandingService.isLabProfileComplete()) {
+                    Alert confirmClose = new Alert(Alert.AlertType.CONFIRMATION);
+                    confirmClose.setTitle("Setup Incomplete");
+                    confirmClose.setHeaderText("Lab information is incomplete");
+                    confirmClose.setContentText("Closing now will require completing setup before using the system.\n\nClose anyway?");
+                    java.util.Optional<javafx.scene.control.ButtonType> result = confirmClose.showAndWait();
+                    if (result.isEmpty() || result.get() != javafx.scene.control.ButtonType.OK) {
+                        event.consume();
+                    }
+                }
+            });
             stage.showAndWait();
         } catch (Exception e) {
             e.printStackTrace();
