@@ -240,6 +240,9 @@
 						<option>--strip-debug</option>
 						<option>--no-man-pages</option>
 						<option>--no-header-files</option>
+						<option>--win-dir-chooser</option>
+						<option>--win-menu</option>
+						<option>--win-shortcut</option>
 					</options>
 				</configuration>
 			</plugin>
