@@ -53,14 +53,19 @@ jobs:
         shell: cmd
         run: |
           dir target
-          if not exist "target\\*.jar.original" (
+          set FOUND_ORIG=
+          for %%f in (target\\*.jar.original) do set FOUND_ORIG=1
+          if not defined FOUND_ORIG (
             echo Boot jar repackage did not run (missing .jar.original)
             exit /b 1
           )
-          if not exist "target\\*.exe" (
+          set FOUND_EXE=
+          for %%f in (target\\*.exe) do set FOUND_EXE=1
+          if not defined FOUND_EXE (
             echo Installer exe not found in target
             exit /b 1
           )
+          exit /b 0
 
       - name: Publish installer to Release
         uses: ncipollo/release-action@v1
