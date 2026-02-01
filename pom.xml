@@ -245,6 +245,7 @@
 						<module>java.sql</module>
 						<module>java.naming</module>
 						<module>java.management</module>
+						<module>java.instrument</module>
 					</addModules>
 					<options>
 						<option>--strip-debug</option>
