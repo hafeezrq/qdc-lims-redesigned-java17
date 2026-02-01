@@ -1,11 +1,15 @@
 package com.qdc.lims;
 
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.autoconfigure.domain.EntityScan;
+import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 
 /**
  * Main entry point for the LIMS Spring Boot application.
  */
 @SpringBootApplication
+@EnableJpaRepositories(basePackages = "com.qdc.lims.repository")
+@EntityScan(basePackages = "com.qdc.lims.entity")
 public class QdcLimsApplication {
 
 	/**
