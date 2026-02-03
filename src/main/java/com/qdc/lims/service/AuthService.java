@@ -59,6 +59,31 @@ public class AuthService {
     }
 
     /**
+     * Authenticates a user by username without verifying the password.
+     * Intended for controlled, passwordless flows (non-admin roles).
+     *
+     * @param username username to authenticate
+     * @return the authenticated User, or {@code null} if authentication fails
+     */
+    public User authenticateWithoutPassword(String username) {
+        Optional<User> userOpt = userRepository.findByUsername(username);
+
+        if (userOpt.isEmpty()) {
+            return null;
+        }
+
+        User user = userOpt.get();
+        if (!user.isActive() || !user.isAccountNonExpired() || !user.isAccountNonLocked()
+                || !user.isCredentialsNonExpired()) {
+            return null;
+        }
+
+        user.setLastLoginAt(LocalDateTime.now());
+        userRepository.save(user);
+        return user;
+    }
+
+    /**
      * Retrieves a user by username.
      *
      * @param username username to look up

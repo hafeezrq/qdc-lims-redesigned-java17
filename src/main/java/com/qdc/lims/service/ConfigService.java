@@ -53,6 +53,8 @@ public class ConfigService {
         createIfNotExists("CURRENCY_SYMBOL", "AUTO", "Billing");
         createIfNotExists("TAX_RATE_PERCENT", "0.0", "Billing");
 
+        createIfNotExists("REQUIRE_PASSWORD_RECEPTION_LAB", "true", "Security");
+
         createIfNotExists("REPORT_HEADER_TEXT", "", "Reports");
         createIfNotExists("REPORT_FOOTER_TEXT",
                 "This is a computer generated report and does not require a signature.",

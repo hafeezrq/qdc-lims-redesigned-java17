@@ -26,8 +26,12 @@ public class BackupSettingsService {
     private static final String PREF_NODE = "com.qdc.lims.ui";
     private static final String KEY_BACKUP_PASSWORD = "backup.password";
     private static final String KEY_LAST_BACKUP_DATE = "backup.lastDate";
+    private static final String KEY_AUTO_ENABLED = "backup.autoEnabled";
 
     private final Preferences prefs = Preferences.userRoot().node(PREF_NODE);
+
+    @org.springframework.beans.factory.annotation.Value("${qdc.backup.auto-enabled:false}")
+    private boolean defaultAutoEnabled;
 
     public Optional<char[]> getBackupPassword() {
         String enc = prefs.get(KEY_BACKUP_PASSWORD, null);
@@ -72,6 +76,18 @@ public class BackupSettingsService {
             return;
         }
         prefs.put(KEY_LAST_BACKUP_DATE, date.toString());
+    }
+
+    public boolean isAutoBackupEnabled() {
+        String val = prefs.get(KEY_AUTO_ENABLED, null);
+        if (val == null || val.isBlank()) {
+            return defaultAutoEnabled;
+        }
+        return Boolean.parseBoolean(val);
+    }
+
+    public void setAutoBackupEnabled(boolean enabled) {
+        prefs.put(KEY_AUTO_ENABLED, Boolean.toString(enabled));
     }
 
     private static SecretKey deriveKey() throws Exception {

@@ -7,6 +7,7 @@ import com.qdc.lims.ui.navigation.DashboardType;
 import com.qdc.lims.ui.util.LogoutUtil;
 import com.qdc.lims.service.AdminDashboardStatsService;
 import com.qdc.lims.service.BrandingService;
+import com.qdc.lims.service.ConfigService;
 import com.qdc.lims.service.LocaleFormatService;
 import com.qdc.lims.entity.User;
 
@@ -19,6 +20,7 @@ import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
+import javafx.scene.control.ToggleButton;
 import javafx.scene.layout.BorderPane;
 import javafx.stage.Stage;
 import org.springframework.context.ApplicationContext;
@@ -41,6 +43,7 @@ public class AdminDashboardController {
     private final DashboardSwitchService dashboardSwitchService;
     private final AdminDashboardStatsService statsService;
     private final BrandingService brandingService;
+    private final ConfigService configService;
     private final LocaleFormatService localeFormatService;
 
     @FXML
@@ -68,18 +71,22 @@ public class AdminDashboardController {
     private Label activeDoctorsLabel;
     @FXML
     private Label totalTestsLabel;
+    @FXML
+    private ToggleButton receptionLabPasswordToggle;
 
     public AdminDashboardController(ApplicationContext applicationContext,
             DashboardNavigator navigator,
             DashboardSwitchService dashboardSwitchService,
             AdminDashboardStatsService statsService,
             BrandingService brandingService,
+            ConfigService configService,
             LocaleFormatService localeFormatService) {
         this.applicationContext = applicationContext;
         this.navigator = navigator;
         this.dashboardSwitchService = dashboardSwitchService;
         this.statsService = statsService;
         this.brandingService = brandingService;
+        this.configService = configService;
         this.localeFormatService = localeFormatService;
     }
 
@@ -134,6 +141,7 @@ public class AdminDashboardController {
 
         loadDashboardStats();
         applyBranding();
+        syncReceptionLabPasswordToggle();
     }
 
     private void loadDashboardStats() {
@@ -369,7 +377,7 @@ public class AdminDashboardController {
     // SYSTEM SETTINGS
     @FXML
     private void handleBackupSettings() {
-        openAdminWindow("/fxml/backup_settings.fxml", "Backup & Restore");
+        openAdminWindow("/fxml/backup_settings.fxml", "Backup & Snapshots");
     }
 
     @FXML
@@ -390,6 +398,21 @@ public class AdminDashboardController {
     @FXML
     private void handleUserManagement() {
         openAdminWindow("/fxml/user_management.fxml", "User Management");
+    }
+
+    @FXML
+    private void handleReceptionLabPasswordToggle() {
+        if (receptionLabPasswordToggle == null) {
+            return;
+        }
+        boolean requirePassword = receptionLabPasswordToggle.isSelected();
+        configService.set("REQUIRE_PASSWORD_RECEPTION_LAB", Boolean.toString(requirePassword));
+        applyReceptionLabPasswordToggleStyle(requirePassword);
+        if (statusLabel != null) {
+            statusLabel.setText(requirePassword
+                    ? "Reception/Lab password requirement enabled."
+                    : "Reception/Lab password requirement disabled.");
+        }
     }
 
     /**
@@ -475,5 +498,27 @@ public class AdminDashboardController {
         if (footerBrandLabel != null) {
             footerBrandLabel.setText(brandingService.getCopyrightLine());
         }
+    }
+
+    private void syncReceptionLabPasswordToggle() {
+        if (receptionLabPasswordToggle == null) {
+            return;
+        }
+        String value = configService.getTrimmed("REQUIRE_PASSWORD_RECEPTION_LAB", "true");
+        boolean requirePassword = Boolean.parseBoolean(value);
+        receptionLabPasswordToggle.setSelected(requirePassword);
+        applyReceptionLabPasswordToggleStyle(requirePassword);
+    }
+
+    private void applyReceptionLabPasswordToggleStyle(boolean requirePassword) {
+        if (receptionLabPasswordToggle == null) {
+            return;
+        }
+        receptionLabPasswordToggle.setText(requirePassword
+                ? "Reception/Lab Password: ON"
+                : "Reception/Lab Password: OFF");
+        String color = requirePassword ? "#2c3e50" : "#e67e22";
+        receptionLabPasswordToggle.setStyle("-fx-background-color: " + color
+                + "; -fx-text-fill: white; -fx-padding: 6 12; -fx-background-radius: 5;");
     }
 }

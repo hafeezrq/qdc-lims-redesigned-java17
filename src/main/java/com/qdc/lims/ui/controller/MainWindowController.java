@@ -752,6 +752,35 @@ public class MainWindowController {
                 .anyMatch(r -> r.getName().toUpperCase().contains("ADMIN"));
     }
 
+    private boolean isPasswordlessAllowed(DashboardType targetRole) {
+        if (targetRole == DashboardType.ADMIN) {
+            return false;
+        }
+        String value = configService.getTrimmed("REQUIRE_PASSWORD_RECEPTION_LAB", "true");
+        boolean requirePassword = Boolean.parseBoolean(value);
+        return !requirePassword
+                && (targetRole == DashboardType.RECEPTION || targetRole == DashboardType.LAB);
+    }
+
+    private String getAccountStatusError(User user) {
+        if (user == null) {
+            return "Username not found.";
+        }
+        if (!user.isEnabled()) {
+            return "Account is disabled. Contact an administrator.";
+        }
+        if (!user.isAccountNonLocked()) {
+            return "Account is locked. Contact an administrator.";
+        }
+        if (!user.isAccountNonExpired()) {
+            return "Account has expired. Contact an administrator.";
+        }
+        if (!user.isCredentialsNonExpired()) {
+            return "Password has expired. Contact an administrator.";
+        }
+        return null;
+    }
+
     /**
      * Switch the admin tab to show a different dashboard view.
      */
@@ -929,6 +958,8 @@ public class MainWindowController {
         Label passwordHintLabel = new Label(passwordPolicyService.getPolicyHint());
         passwordHintLabel.setStyle("-fx-text-fill: #7f8c8d; -fx-font-size: 11;");
 
+        boolean passwordlessAllowed = isPasswordlessAllowed(targetRole);
+
         // Role indicator
         String roleColor = switch (targetRole) {
             case ADMIN -> "#e74c3c";
@@ -942,10 +973,18 @@ public class MainWindowController {
         content.setPadding(new Insets(20));
         content.getChildren().addAll(
                 roleLabel,
-                new VBox(5, new Label("Username:"), usernameField),
-                new VBox(5, new Label("Password:"), passwordField),
-                passwordHintLabel,
-                errorLabel);
+                new VBox(5, new Label("Username:"), usernameField));
+
+        if (passwordlessAllowed) {
+            Label passwordlessHint = new Label("Password not required for Reception/Lab.");
+            passwordlessHint.setStyle("-fx-text-fill: #7f8c8d; -fx-font-size: 11;");
+            content.getChildren().addAll(passwordlessHint, errorLabel);
+        } else {
+            content.getChildren().addAll(
+                    new VBox(5, new Label("Password:"), passwordField),
+                    passwordHintLabel,
+                    errorLabel);
+        }
 
         dialog.getDialogPane().setContent(content);
 
@@ -959,21 +998,55 @@ public class MainWindowController {
         // Style the login button
         loginButton.setStyle("-fx-background-color: " + roleColor + "; -fx-text-fill: white;");
 
-        usernameField.textProperty().addListener((obs, old, newVal) -> loginButton
-                .setDisable(newVal.trim().isEmpty() || passwordField.getText().isEmpty()));
-        passwordField.textProperty().addListener((obs, old, newVal) -> loginButton
-                .setDisable(usernameField.getText().trim().isEmpty() || newVal.isEmpty()));
+        if (passwordlessAllowed) {
+            usernameField.textProperty().addListener((obs, old, newVal) -> loginButton
+                    .setDisable(newVal.trim().isEmpty()));
+            usernameField.setOnAction(e -> {
+                if (!loginButton.isDisabled()) {
+                    loginButton.fire();
+                }
+            });
+        } else {
+            usernameField.textProperty().addListener((obs, old, newVal) -> loginButton
+                    .setDisable(newVal.trim().isEmpty() || passwordField.getText().isEmpty()));
+            passwordField.textProperty().addListener((obs, old, newVal) -> loginButton
+                    .setDisable(usernameField.getText().trim().isEmpty() || newVal.isEmpty()));
 
-        // Handle Enter key in password field
-        passwordField.setOnAction(e -> {
-            if (!loginButton.isDisabled()) {
-                loginButton.fire();
-            }
-        });
+            // Handle Enter key in password field
+            passwordField.setOnAction(e -> {
+                if (!loginButton.isDisabled()) {
+                    loginButton.fire();
+                }
+            });
+        }
 
         loginButton.addEventFilter(ActionEvent.ACTION, event -> {
             String username = usernameField.getText().trim();
             String password = passwordField.getText();
+
+            if (passwordlessAllowed) {
+                User user = authService.getUser(username);
+                String statusError = getAccountStatusError(user);
+                if (statusError != null) {
+                    errorLabel.setText(statusError);
+                    event.consume();
+                    return;
+                }
+                if (isAdminUser(user)) {
+                    errorLabel.setText("Admin requires a password.");
+                    event.consume();
+                    return;
+                }
+                User authenticated = authService.authenticateWithoutPassword(username);
+                if (authenticated != null) {
+                    dialog.setResult(authenticated);
+                    dialog.close();
+                    return;
+                }
+                errorLabel.setText("Login failed. Please try again.");
+                event.consume();
+                return;
+            }
 
             if (authService.authenticate(username, password)) {
                 User user = authService.getUser(username);
@@ -1206,8 +1279,7 @@ public class MainWindowController {
     }
 
     private void expireInactiveSessions() {
-        Duration timeout = getSessionTimeout();
-        if (timeout.isZero()) {
+        if (sessionTimeoutMinutes <= 0) {
             return;
         }
 
@@ -1243,7 +1315,7 @@ public class MainWindowController {
     }
 
     private boolean isExpired(SessionInfo session) {
-        Duration timeout = getSessionTimeout();
+        Duration timeout = getSessionTimeout(session);
         if (timeout.isZero()) {
             return false;
         }
@@ -1253,8 +1325,14 @@ public class MainWindowController {
         return Duration.between(session.lastAccess, Instant.now()).compareTo(timeout) > 0;
     }
 
-    private Duration getSessionTimeout() {
+    private Duration getSessionTimeout(SessionInfo session) {
         if (sessionTimeoutMinutes <= 0) {
+            return Duration.ZERO;
+        }
+        if (session != null
+                && !isAdminUser(session.user)
+                && (session.dashboardType == DashboardType.RECEPTION
+                        || session.dashboardType == DashboardType.LAB)) {
             return Duration.ZERO;
         }
         return Duration.ofMinutes(sessionTimeoutMinutes);

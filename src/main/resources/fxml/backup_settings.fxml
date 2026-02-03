@@ -12,8 +12,8 @@
         <Insets top="20" right="20" bottom="20" left="20"/>
     </padding>
 
-    <Label text="Backup &amp; Restore" style="-fx-font-size: 20; -fx-font-weight: bold;"/>
-    <Label text="Backups are stored in the app data folder and are encrypted." style="-fx-text-fill: #7f8c8d;"/>
+    <Label text="Backup &amp; Snapshots" style="-fx-font-size: 20; -fx-font-weight: bold;"/>
+    <Label text="Backups are stored in the app data folder and are encrypted. Snapshots open in a separate window." style="-fx-text-fill: #7f8c8d;" wrapText="true"/>
 
     <VBox spacing="10" style="-fx-background-color: white; -fx-padding: 15; -fx-background-radius: 10;">
         <Label text="Backup Password" style="-fx-font-weight: bold;"/>
@@ -36,16 +36,29 @@
     </VBox>
 
     <VBox spacing="10" style="-fx-background-color: white; -fx-padding: 15; -fx-background-radius: 10;">
+        <Label text="Automatic Backup" style="-fx-font-weight: bold;"/>
+        <Label text="When enabled, a daily backup runs on app startup." style="-fx-text-fill: #7f8c8d;" wrapText="true"/>
+        <ToggleButton fx:id="autoBackupToggle" text="Auto Backup: OFF"
+                      onAction="#handleAutoBackupToggle"
+                      style="-fx-background-color: #7f8c8d; -fx-text-fill: white; -fx-padding: 6 12; -fx-background-radius: 5;"/>
+    </VBox>
+
+    <VBox spacing="10" style="-fx-background-color: white; -fx-padding: 15; -fx-background-radius: 10;">
         <Label text="Backup" style="-fx-font-weight: bold;"/>
         <Button text="Backup Now" onAction="#handleBackupNow"
                 style="-fx-background-color: #27ae60; -fx-text-fill: white; -fx-padding: 8 20;"/>
     </VBox>
 
     <VBox spacing="10" style="-fx-background-color: white; -fx-padding: 15; -fx-background-radius: 10;">
-        <Label text="Restore" style="-fx-font-weight: bold;"/>
-        <Label text="Restoring will overwrite the current database and close the app." style="-fx-text-fill: #7f8c8d;" wrapText="true"/>
-        <Button text="Restore Backup..." onAction="#handleRestore"
-                style="-fx-background-color: #e67e22; -fx-text-fill: white; -fx-padding: 8 20;"/>
+        <Label text="Available Backups" style="-fx-font-weight: bold;"/>
+        <ListView fx:id="backupListView" prefHeight="160"/>
+        <Label fx:id="backupListStatusLabel" style="-fx-text-fill: #7f8c8d;"/>
+        <HBox spacing="10">
+            <Button text="Refresh List" onAction="#handleRefreshBackups"
+                    style="-fx-background-color: #34495e; -fx-text-fill: white; -fx-padding: 6 12;"/>
+            <Button text="Open Snapshot Window" onAction="#handleOpenSnapshot"
+                    style="-fx-background-color: #9b59b6; -fx-text-fill: white; -fx-padding: 6 12;"/>
+        </HBox>
     </VBox>
 
     <Label fx:id="statusLabel" wrapText="true"/>

@@ -17,6 +17,9 @@ public class BackupScheduler implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
+        if (!backupService.isAutoBackupEnabled()) {
+            return;
+        }
         // Run in a background thread so startup isn't delayed.
         new Thread(() -> {
             try {

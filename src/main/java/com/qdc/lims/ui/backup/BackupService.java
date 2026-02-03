@@ -45,6 +45,10 @@ public class BackupService {
         this.settings = settings;
     }
 
+    public boolean isAutoBackupEnabled() {
+        return settings.isAutoBackupEnabled();
+    }
+
     public Path backupNow() {
         char[] password = settings.getBackupPassword()
                 .orElseThrow(() -> new RuntimeException("Backup password is not configured"));
@@ -86,9 +90,16 @@ public class BackupService {
         }
     }
 
-    public void restoreBackup(Path backupZip, char[] password) {
+    public SnapshotRestoreResult restoreBackupToNewDatabase(Path backupZip, char[] password, String databaseName) {
         if (backupZip == null || !Files.exists(backupZip)) {
             throw new IllegalArgumentException("Backup file not found");
+        }
+        if (databaseName == null || databaseName.isBlank()) {
+            throw new IllegalArgumentException("Database name is required");
+        }
+        String sanitizedName = databaseName.trim();
+        if (!sanitizedName.matches("[A-Za-z0-9_]+")) {
+            throw new IllegalArgumentException("Database name can only contain letters, numbers, and underscore");
         }
 
         try {
@@ -112,13 +123,20 @@ public class BackupService {
                 throw new IllegalArgumentException("Backup archive does not contain a supported database file");
             }
 
-            Path extracted = dbFiles.get(0);
             if (!isPostgres()) {
                 throw new IllegalStateException("Restore requires PostgreSQL configuration.");
             }
-            runPostgresRestore(extracted);
+
+            PostgresConnectionInfo info = parseJdbc();
+            createDatabase(info, sanitizedName);
+
+            Path extracted = dbFiles.get(0);
+            runPostgresRestore(extracted, sanitizedName);
+
+            String jdbcSnapshot = buildJdbcUrl(info, sanitizedName);
+            return new SnapshotRestoreResult(sanitizedName, jdbcSnapshot, jdbcUsername, jdbcPassword);
         } catch (Exception e) {
-            throw new RuntimeException("Restore failed: " + e.getMessage(), e);
+            throw new RuntimeException("Snapshot restore failed: " + e.getMessage(), e);
         }
     }
 
@@ -178,8 +196,8 @@ public class BackupService {
         runCommand(command, postgresEnv());
     }
 
-    private void runPostgresRestore(Path dumpFile) throws Exception {
-        String conn = toPostgresUri(jdbcUrl);
+    private void runPostgresRestore(Path dumpFile, String databaseName) throws Exception {
+        String conn = toPostgresUriForDatabase(databaseName);
         List<String> command = List.of(
                 "pg_restore",
                 "--clean",
@@ -249,6 +267,132 @@ public class BackupService {
             return "postgresql://" + host + ":" + port + "/" + dbName;
         } catch (Exception e) {
             throw new IllegalStateException("Invalid PostgreSQL JDBC URL: " + jdbc, e);
+        }
+    }
+
+    private String toPostgresUriForDatabase(String databaseName) {
+        PostgresConnectionInfo info = parseJdbc();
+        String host = info.host != null ? info.host : "localhost";
+        int port = info.port > 0 ? info.port : 5432;
+        return "postgresql://" + host + ":" + port + "/" + databaseName;
+    }
+
+    private PostgresConnectionInfo parseJdbc() {
+        if (jdbcUrl == null || jdbcUrl.isBlank()) {
+            throw new IllegalStateException("JDBC URL is not configured");
+        }
+        try {
+            URI uri = new URI(jdbcUrl.substring("jdbc:".length()));
+            String host = uri.getHost();
+            int port = uri.getPort() > 0 ? uri.getPort() : 5432;
+            String path = uri.getPath() != null ? uri.getPath() : "";
+            String dbName = path.startsWith("/") ? path.substring(1) : path;
+            String query = uri.getQuery();
+            if (dbName.isBlank()) {
+                throw new IllegalStateException("Unable to determine database name from JDBC URL");
+            }
+            return new PostgresConnectionInfo(host, port, dbName, query);
+        } catch (Exception e) {
+            throw new IllegalStateException("Invalid PostgreSQL JDBC URL: " + jdbcUrl, e);
+        }
+    }
+
+    private String buildJdbcUrl(PostgresConnectionInfo info, String databaseName) {
+        String host = info.host != null ? info.host : "localhost";
+        int port = info.port > 0 ? info.port : 5432;
+        String base = "jdbc:postgresql://" + host + ":" + port + "/" + databaseName;
+        if (info.query != null && !info.query.isBlank()) {
+            return base + "?" + info.query;
+        }
+        return base;
+    }
+
+    private void createDatabase(PostgresConnectionInfo info, String databaseName) throws Exception {
+        List<String> command = new java.util.ArrayList<>();
+        command.add("createdb");
+        command.add("--host");
+        command.add(info.host != null ? info.host : "localhost");
+        command.add("--port");
+        command.add(String.valueOf(info.port > 0 ? info.port : 5432));
+        if (jdbcUsername != null && !jdbcUsername.isBlank()) {
+            command.add("--username");
+            command.add(jdbcUsername);
+        }
+        command.add(databaseName);
+        try {
+            runCommand(command, postgresEnv());
+        } catch (IllegalStateException e) {
+            String message = e.getMessage() != null ? e.getMessage() : "";
+            if (!message.contains("createdb is not available")) {
+                throw e;
+            }
+            runPsqlCreateDatabase(info, databaseName);
+        }
+    }
+
+    private void runPsqlCreateDatabase(PostgresConnectionInfo info, String databaseName) throws Exception {
+        String host = info.host != null ? info.host : "localhost";
+        int port = info.port > 0 ? info.port : 5432;
+        String baseDb = info.database != null && !info.database.isBlank() ? info.database : "postgres";
+        String sql = "CREATE DATABASE \"" + databaseName + "\"";
+        List<String> command = new java.util.ArrayList<>();
+        command.add("psql");
+        command.add("--host");
+        command.add(host);
+        command.add("--port");
+        command.add(String.valueOf(port));
+        if (jdbcUsername != null && !jdbcUsername.isBlank()) {
+            command.add("--username");
+            command.add(jdbcUsername);
+        }
+        command.add("--dbname");
+        command.add(baseDb);
+        command.add("--command");
+        command.add(sql);
+        runCommand(command, postgresEnv());
+    }
+
+    public static class SnapshotRestoreResult {
+        private final String databaseName;
+        private final String jdbcUrl;
+        private final String username;
+        private final String password;
+
+        public SnapshotRestoreResult(String databaseName, String jdbcUrl, String username, String password) {
+            this.databaseName = databaseName;
+            this.jdbcUrl = jdbcUrl;
+            this.username = username;
+            this.password = password;
+        }
+
+        public String getDatabaseName() {
+            return databaseName;
+        }
+
+        public String getJdbcUrl() {
+            return jdbcUrl;
+        }
+
+        public String getUsername() {
+            return username;
+        }
+
+        public String getPassword() {
+            return password;
+        }
+    }
+
+    private static class PostgresConnectionInfo {
+        private final String host;
+        private final int port;
+        private final String database;
+        private final String query;
+
+        private PostgresConnectionInfo(String host, int port, String database, String query) {
+            this.host = host;
+            this.port = port;
+            this.database = database;
+            this.query = query;
         }
     }
 }

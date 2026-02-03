@@ -83,10 +83,10 @@
                         
                         <GridPane hgap="15" vgap="10">
                             <Label text="Discount:" GridPane.columnIndex="0" GridPane.rowIndex="0" style="-fx-font-weight: bold;"/>
-                            <TextField fx:id="discountField" text="0" promptText="0.00" GridPane.columnIndex="1" GridPane.rowIndex="0" prefWidth="150"/>
+                            <TextField fx:id="discountField" text="" promptText="0.00" GridPane.columnIndex="1" GridPane.rowIndex="0" prefWidth="150"/>
                             
                             <Label text="Cash Paid:" GridPane.columnIndex="0" GridPane.rowIndex="1" style="-fx-font-weight: bold;"/>
-                            <TextField fx:id="cashPaidField" text="0" promptText="0.00" GridPane.columnIndex="1" GridPane.rowIndex="1" prefWidth="150"/>
+                            <TextField fx:id="cashPaidField" text="" promptText="0.00" GridPane.columnIndex="1" GridPane.rowIndex="1" prefWidth="150"/>
                             
                             <Label text="Balance:" GridPane.columnIndex="0" GridPane.rowIndex="2" style="-fx-font-weight: bold;"/>
                             <Label fx:id="balanceLabel" text="0.00" GridPane.columnIndex="1" GridPane.rowIndex="2" 
