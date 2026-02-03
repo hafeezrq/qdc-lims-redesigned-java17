@@ -1,6 +1,7 @@
 package com.qdc.lims.service;
 
 import com.qdc.lims.ui.navigation.DashboardType;
+import javafx.scene.image.Image;
 import javafx.stage.Stage;
 import javafx.stage.Window;
 import org.springframework.stereotype.Service;
@@ -17,8 +18,10 @@ import java.time.Year;
 public class BrandingService {
 
     private static final String STAGE_CONTEXT_KEY = "branding.context";
+    private static final String APP_ICON_PATH = "/icons/microscope.png";
 
     private final ConfigService configService;
+    private Image appIcon;
 
     /**
      * Creates the branding service.
@@ -115,6 +118,7 @@ public class BrandingService {
         }
         stage.getProperties().put(STAGE_CONTEXT_KEY, context);
         applyTaggedStageTitle(stage);
+        applyStageIcon(stage);
     }
 
     /**
@@ -183,6 +187,34 @@ public class BrandingService {
         Object context = stage.getProperties().get(STAGE_CONTEXT_KEY);
         if (context instanceof String ctx) {
             stage.setTitle(formatWindowTitle(ctx));
+        }
+    }
+
+    private void applyStageIcon(Stage stage) {
+        Image icon = getAppIcon();
+        if (icon == null) {
+            return;
+        }
+        if (stage.getIcons().isEmpty()) {
+            stage.getIcons().add(icon);
+        } else if (!stage.getIcons().contains(icon)) {
+            stage.getIcons().setAll(icon);
+        }
+    }
+
+    private Image getAppIcon() {
+        if (appIcon != null) {
+            return appIcon;
+        }
+        try {
+            var stream = BrandingService.class.getResourceAsStream(APP_ICON_PATH);
+            if (stream == null) {
+                return null;
+            }
+            appIcon = new Image(stream);
+            return appIcon;
+        } catch (Exception e) {
+            return null;
         }
     }
 }

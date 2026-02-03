@@ -9,24 +9,31 @@ import com.qdc.lims.service.AdminDashboardStatsService;
 import com.qdc.lims.service.BrandingService;
 import com.qdc.lims.service.ConfigService;
 import com.qdc.lims.service.LocaleFormatService;
+import com.qdc.lims.service.UpdateService;
 import com.qdc.lims.entity.User;
 
 import javafx.application.Platform;
+import javafx.concurrent.Task;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
+import javafx.scene.control.ButtonBar;
+import javafx.scene.control.ButtonType;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
+import javafx.scene.control.ProgressIndicator;
 import javafx.scene.control.ToggleButton;
 import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Controller;
 
 import java.time.LocalDateTime;
+import java.util.Optional;
 
 /**
  * JavaFX controller for the admin dashboard window.
@@ -45,6 +52,7 @@ public class AdminDashboardController {
     private final BrandingService brandingService;
     private final ConfigService configService;
     private final LocaleFormatService localeFormatService;
+    private final UpdateService updateService;
 
     @FXML
     private Label welcomeLabel;
@@ -80,7 +88,8 @@ public class AdminDashboardController {
             AdminDashboardStatsService statsService,
             BrandingService brandingService,
             ConfigService configService,
-            LocaleFormatService localeFormatService) {
+            LocaleFormatService localeFormatService,
+            UpdateService updateService) {
         this.applicationContext = applicationContext;
         this.navigator = navigator;
         this.dashboardSwitchService = dashboardSwitchService;
@@ -88,6 +97,7 @@ public class AdminDashboardController {
         this.brandingService = brandingService;
         this.configService = configService;
         this.localeFormatService = localeFormatService;
+        this.updateService = updateService;
     }
 
     @FXML
@@ -388,6 +398,148 @@ public class AdminDashboardController {
     @FXML
     private void handleSystemConfig() {
         openAdminWindow("/fxml/system_settings.fxml", "System Configuration");
+    }
+
+    @FXML
+    private void handleCheckForUpdates() {
+        Alert progress = new Alert(Alert.AlertType.INFORMATION);
+        progress.setTitle("Checking for Updates");
+        progress.setHeaderText(null);
+        ProgressIndicator indicator = new ProgressIndicator();
+        VBox content = new VBox(10, new Label("Checking for updates..."), indicator);
+        progress.getDialogPane().setContent(content);
+        progress.getDialogPane().getButtonTypes().clear();
+        progress.show();
+
+        Task<UpdateService.UpdateCheckResult> task = new Task<>() {
+            @Override
+            protected UpdateService.UpdateCheckResult call() throws Exception {
+                return updateService.checkForUpdates();
+            }
+        };
+
+        task.setOnSucceeded(event -> {
+            progress.close();
+            showUpdateResult(task.getValue());
+        });
+
+        task.setOnFailed(event -> {
+            progress.close();
+            Throwable ex = task.getException();
+            showAlert("Update Check Failed", ex != null ? ex.getMessage() : "Unable to check for updates.");
+        });
+
+        Thread thread = new Thread(task, "update-check");
+        thread.setDaemon(true);
+        thread.start();
+    }
+
+    private void showUpdateResult(UpdateService.UpdateCheckResult result) {
+        if (result == null) {
+            showAlert("Update Check", "No update information available.");
+            return;
+        }
+
+        switch (result.getStatus()) {
+            case UPDATE_AVAILABLE -> showUpdateAvailableDialog(result);
+            case UP_TO_DATE -> showAlert("Update Check",
+                    "You are already on the latest version (" + safe(result.getCurrentVersion()) + ").");
+            case UNKNOWN -> showAlert("Update Check",
+                    "Latest version: " + safe(result.getLatestTag())
+                            + "\nCurrent version: " + safe(result.getCurrentVersion())
+                            + "\nUnable to compare versions automatically.");
+            case ERROR -> showAlert("Update Check",
+                    result.getMessage() != null ? result.getMessage() : "Unable to check for updates.");
+        }
+    }
+
+    private void showUpdateAvailableDialog(UpdateService.UpdateCheckResult result) {
+        Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        alert.setTitle("Update Available");
+        alert.setHeaderText("New version available: " + safe(result.getLatestTag()));
+
+        StringBuilder content = new StringBuilder();
+        content.append("Current version: ").append(safe(result.getCurrentVersion())).append("\n");
+        content.append("Latest version: ").append(safe(result.getLatestTag())).append("\n\n");
+        if (result.getReleaseNotes() != null && !result.getReleaseNotes().isBlank()) {
+            content.append(result.getReleaseNotes().trim());
+        } else {
+            content.append("Release notes not available.");
+        }
+
+        alert.setContentText(content.toString());
+
+        ButtonType download = new ButtonType("Download & Install", ButtonBar.ButtonData.OK_DONE);
+        ButtonType later = new ButtonType("Later", ButtonBar.ButtonData.CANCEL_CLOSE);
+        alert.getButtonTypes().setAll(download, later);
+
+        Optional<ButtonType> choice = alert.showAndWait();
+        if (choice.isPresent() && choice.get() == download) {
+            startInstallerDownload(result);
+        }
+    }
+
+    private void startInstallerDownload(UpdateService.UpdateCheckResult result) {
+        if (!updateService.isInstallerSupported()) {
+            showAlert("Update Not Supported", "Installer updates are only supported on Windows.");
+            return;
+        }
+        if (result.getAssetUrl() == null || result.getAssetUrl().isBlank()) {
+            showAlert("Update Not Available", "Installer download link not found.");
+            return;
+        }
+
+        Alert progress = new Alert(Alert.AlertType.INFORMATION);
+        progress.setTitle("Downloading Update");
+        progress.setHeaderText(null);
+        ProgressIndicator indicator = new ProgressIndicator();
+        VBox content = new VBox(10, new Label("Downloading installer..."), indicator);
+        progress.getDialogPane().setContent(content);
+        progress.getDialogPane().getButtonTypes().clear();
+        progress.show();
+
+        Task<java.nio.file.Path> downloadTask = new Task<>() {
+            @Override
+            protected java.nio.file.Path call() throws Exception {
+                return updateService.downloadInstaller(result.getAssetUrl());
+            }
+        };
+
+        downloadTask.setOnSucceeded(event -> {
+            progress.close();
+            java.nio.file.Path installer = downloadTask.getValue();
+            if (installer == null) {
+                showAlert("Update Failed", "Installer download failed.");
+                return;
+            }
+            try {
+                updateService.launchInstaller(installer);
+                Alert done = new Alert(Alert.AlertType.CONFIRMATION);
+                done.setTitle("Installer Started");
+                done.setHeaderText(null);
+                done.setContentText("Installer started. Close the app to continue?");
+                Optional<ButtonType> choice = done.showAndWait();
+                if (choice.isPresent() && choice.get() == ButtonType.OK) {
+                    Platform.exit();
+                }
+            } catch (Exception e) {
+                showAlert("Update Failed", e.getMessage());
+            }
+        });
+
+        downloadTask.setOnFailed(event -> {
+            progress.close();
+            Throwable ex = downloadTask.getException();
+            showAlert("Update Failed", ex != null ? ex.getMessage() : "Installer download failed.");
+        });
+
+        Thread thread = new Thread(downloadTask, "update-download");
+        thread.setDaemon(true);
+        thread.start();
+    }
+
+    private String safe(String value) {
+        return value == null || value.isBlank() ? "Unknown" : value;
     }
 
     @FXML

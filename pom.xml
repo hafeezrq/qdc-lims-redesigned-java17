@@ -130,6 +130,22 @@
 	</dependencies>
 
 	<build>
+		<resources>
+			<resource>
+				<directory>src/main/resources</directory>
+				<filtering>false</filtering>
+				<excludes>
+					<exclude>build-info.properties</exclude>
+				</excludes>
+			</resource>
+			<resource>
+				<directory>src/main/resources</directory>
+				<filtering>true</filtering>
+				<includes>
+					<include>build-info.properties</include>
+				</includes>
+			</resource>
+		</resources>
 		<plugins>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
@@ -258,6 +274,8 @@
 						<module>jdk.unsupported</module>
 					</addModules>
 					<options>
+						<option>--icon</option>
+						<option>${project.basedir}/src/main/resources/icons/microscope.ico</option>
 						<option>--strip-debug</option>
 						<option>--no-man-pages</option>
 						<option>--no-header-files</option>

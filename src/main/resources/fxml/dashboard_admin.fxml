@@ -60,6 +60,7 @@
                 </Menu>
                 
                 <Menu text="System Settings">
+                    <MenuItem text="Check for Updates" onAction="#handleCheckForUpdates"/>
                     <MenuItem text="Backup &amp; Snapshots" onAction="#handleBackupSettings"/>
                     <MenuItem text="System Configuration" onAction="#handleSystemConfig"/>
                 </Menu>
