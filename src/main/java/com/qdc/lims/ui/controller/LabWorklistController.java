@@ -11,6 +11,8 @@ import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
+import javafx.geometry.Insets;
+import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
@@ -167,7 +169,7 @@ public class LabWorklistController {
                     setStyle("");
                 } else {
                     setText(item);
-                    if (item.equals("PENDING")) {
+                    if (item.equals("PENDING") || item.equals("IN_PROGRESS")) {
                         setStyle("-fx-background-color: #e67e22; -fx-text-fill: white; -fx-font-weight: bold;");
                     } else if (item.equals("COMPLETED")) {
                         setStyle("-fx-background-color: #27ae60; -fx-text-fill: white; -fx-font-weight: bold;");
@@ -178,14 +180,14 @@ public class LabWorklistController {
 
         // Action buttons in table
         actionColumn.setCellFactory(param -> new TableCell<>() {
-            private final Button enterResultsBtn = new Button("Enter Results");
+            private final Button viewTestsBtn = new Button("View Tests");
             private final Button editResultsBtn = new Button("Edit Results");
 
             {
-                enterResultsBtn.setStyle("-fx-background-color: #3498db; -fx-text-fill: white; -fx-padding: 5 10;");
-                enterResultsBtn.setOnAction(event -> {
+                viewTestsBtn.setStyle("-fx-background-color: #3498db; -fx-text-fill: white; -fx-padding: 5 10;");
+                viewTestsBtn.setOnAction(event -> {
                     LabOrder order = getTableView().getItems().get(getIndex());
-                    openResultEntryForm(order);
+                    showTestsDialog(order, true);
                 });
 
                 editResultsBtn.setStyle("-fx-background-color: #e67e22; -fx-text-fill: white; -fx-padding: 5 10;");
@@ -202,8 +204,8 @@ public class LabWorklistController {
                     setGraphic(null);
                 } else {
                     LabOrder order = getTableView().getItems().get(getIndex());
-                    if (order.getStatus().equals("PENDING")) {
-                        setGraphic(enterResultsBtn);
+                    if (isPendingStatus(order)) {
+                        setGraphic(viewTestsBtn);
                     } else {
                         // Allow editing completed orders to fix mistakes
                         setGraphic(editResultsBtn);
@@ -229,7 +231,7 @@ public class LabWorklistController {
 
         if (pendingRadio.isSelected()) {
             filteredOrders = filteredOrders.stream()
-                    .filter(order -> "PENDING".equals(order.getStatus()))
+                    .filter(this::isPendingStatus)
                     .collect(Collectors.toList());
         } else if (completedRadio.isSelected()) {
             filteredOrders = filteredOrders.stream()
@@ -353,6 +355,80 @@ public class LabWorklistController {
             e.printStackTrace();
             showAlert("Failed to open result entry: " + e.getMessage());
         }
+    }
+
+    private void showTestsDialog(LabOrder order, boolean allowEnterResults) {
+        if (order == null) {
+            return;
+        }
+        Dialog<ButtonType> dialog = new Dialog<>();
+        dialog.setTitle("Order Tests");
+        dialog.setHeaderText("Order #" + order.getId() + " - " + order.getPatient().getFullName());
+
+        VBox content = new VBox(8);
+        content.setPadding(new Insets(10));
+        Label meta = new Label("MRN: " + order.getPatient().getMrn() + " | Tests: "
+                + (order.getResults() != null ? order.getResults().size() : 0));
+        meta.setStyle("-fx-text-fill: #7f8c8d;");
+        content.getChildren().add(meta);
+
+        VBox testsBox = new VBox(6);
+        if (order.getResults() != null) {
+            var grouped = order.getResults().stream()
+                    .sorted((a, b) -> {
+                        String aName = a.getTestDefinition() != null ? a.getTestDefinition().getTestName() : "";
+                        String bName = b.getTestDefinition() != null ? b.getTestDefinition().getTestName() : "";
+                        return aName.compareToIgnoreCase(bName);
+                    })
+                    .collect(Collectors.groupingBy(
+                            result -> result.getTestDefinition() != null
+                                    && result.getTestDefinition().getCategory() != null
+                                    && result.getTestDefinition().getCategory().getName() != null
+                                            ? result.getTestDefinition().getCategory().getName()
+                                            : "Other",
+                            java.util.LinkedHashMap::new,
+                            Collectors.toList()));
+
+            for (var entry : grouped.entrySet()) {
+                Label categoryLabel = new Label(entry.getKey());
+                categoryLabel.setStyle("-fx-font-weight: bold; -fx-text-fill: #34495e;");
+                testsBox.getChildren().add(categoryLabel);
+
+                for (var result : entry.getValue()) {
+                    String testName = result.getTestDefinition() != null
+                            ? result.getTestDefinition().getTestName()
+                            : "-";
+                    boolean done = result.getResultValue() != null && !result.getResultValue().trim().isEmpty();
+                    Label testLabel = new Label("- " + testName + (done ? " [DONE]" : " [PENDING]"));
+                    testsBox.getChildren().add(testLabel);
+                }
+            }
+        }
+
+        ScrollPane scrollPane = new ScrollPane(testsBox);
+        scrollPane.setFitToWidth(true);
+        scrollPane.setPrefViewportHeight(300);
+        content.getChildren().add(scrollPane);
+
+        dialog.getDialogPane().setContent(content);
+
+        ButtonType enterBtn = new ButtonType("Enter Results", ButtonBar.ButtonData.OK_DONE);
+        dialog.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
+        if (allowEnterResults) {
+            dialog.getDialogPane().getButtonTypes().add(enterBtn);
+        }
+
+        ButtonType response = dialog.showAndWait().orElse(ButtonType.CLOSE);
+        if (response == enterBtn) {
+            openResultEntryForm(order);
+        }
+    }
+
+    private boolean isPendingStatus(LabOrder order) {
+        if (order == null || order.getStatus() == null) {
+            return false;
+        }
+        return "PENDING".equals(order.getStatus()) || "IN_PROGRESS".equals(order.getStatus());
     }
 
     @FXML

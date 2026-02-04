@@ -77,6 +77,15 @@ public class LabOrder {
     private List<LabResult> results = new ArrayList<>();
 
     /**
+     * Panels billed for this order (optional).
+     */
+    @ManyToMany(fetch = FetchType.EAGER)
+    @JoinTable(name = "lab_order_panel",
+            joinColumns = @JoinColumn(name = "lab_order_id"),
+            inverseJoinColumns = @JoinColumn(name = "panel_id"))
+    private List<Panel> panels = new ArrayList<>();
+
+    /**
      * Sets the order date and initial status before persisting the entity.
      */
     @PrePersist

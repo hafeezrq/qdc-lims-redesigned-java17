@@ -7,11 +7,13 @@ import com.qdc.lims.ui.navigation.DashboardType;
 import com.qdc.lims.ui.util.LogoutUtil;
 import com.qdc.lims.entity.LabOrder;
 import com.qdc.lims.entity.LabResult;
+import com.qdc.lims.entity.Panel;
 import com.qdc.lims.entity.Patient;
 import com.qdc.lims.entity.ReferenceRange;
 import com.qdc.lims.entity.TestDefinition;
 import com.qdc.lims.entity.User; // <--- ADDED THIS IMPORT TO FIX THE ERROR
 import com.qdc.lims.repository.LabOrderRepository;
+import com.qdc.lims.repository.PanelRepository;
 import com.qdc.lims.repository.ReferenceRangeRepository;
 import com.qdc.lims.service.LocaleFormatService;
 import javafx.animation.Animation;
@@ -64,6 +66,7 @@ public class ReceptionDashboardController {
 
     private final ApplicationContext applicationContext;
     private final LabOrderRepository labOrderRepository;
+    private final PanelRepository panelRepository;
     private final ReferenceRangeRepository referenceRangeRepository;
     private final DashboardSwitchService dashboardSwitchService;
     private final BrandingService brandingService;
@@ -161,12 +164,14 @@ public class ReceptionDashboardController {
 
     public ReceptionDashboardController(ApplicationContext applicationContext,
             LabOrderRepository labOrderRepository,
+            PanelRepository panelRepository,
             ReferenceRangeRepository referenceRangeRepository,
             DashboardSwitchService dashboardSwitchService,
             BrandingService brandingService,
             LocaleFormatService localeFormatService) {
         this.applicationContext = applicationContext;
         this.labOrderRepository = labOrderRepository;
+        this.panelRepository = panelRepository;
         this.referenceRangeRepository = referenceRangeRepository;
         this.dashboardSwitchService = dashboardSwitchService;
         this.brandingService = brandingService;
@@ -830,6 +835,7 @@ public class ReceptionDashboardController {
         double bottomInset = (2.0 / 2.54) * 72.0;
         double contentWidth = Math.min(620, printableWidth * 0.9);
         double availableHeight = printableHeight - safeTopInset - bottomInset;
+        double headerInset = 0.0;
 
         Patient patient = order.getPatient();
         String patientName = patient != null && patient.getFullName() != null ? patient.getFullName() : "-";
@@ -840,7 +846,10 @@ public class ReceptionDashboardController {
         GridPane patientInfo = new GridPane();
         patientInfo.setHgap(12);
         patientInfo.setVgap(1);
-        patientInfo.setPrefWidth(contentWidth);
+        patientInfo.setStyle("-fx-border-color: #444444; -fx-border-width: 0.5; -fx-border-insets: 0;");
+        patientInfo.setMinHeight(Region.USE_PREF_SIZE);
+        patientInfo.setPrefHeight(Region.USE_COMPUTED_SIZE);
+        patientInfo.setMaxHeight(Region.USE_PREF_SIZE);
 
         int row = 0;
         patientInfo.add(createReportLabel("Patient:"), 0, row);
@@ -863,7 +872,7 @@ public class ReceptionDashboardController {
         List<StackPane> pages = new ArrayList<>();
         PageContext pageContext = newPage(pages, printableWidth, printableHeight, safeTopInset, bottomInset,
                 contentWidth, availableHeight);
-        addNodeToPage(pageContext, patientInfo, contentWidth);
+        attachPatientHeader(pages.get(pages.size() - 1), patientInfo, printableWidth, headerInset);
         addNodeToPage(pageContext, createSpacer(6), contentWidth);
 
         Map<String, List<LabResult>> byDepartment = buildResultsByDepartment(order);
@@ -1025,6 +1034,15 @@ public class ReceptionDashboardController {
     private void addNodeToPage(PageContext pageContext, Node node, double contentWidth) {
         pageContext.content.getChildren().add(node);
         fitsCurrentPage(pageContext, contentWidth);
+    }
+
+    private void attachPatientHeader(StackPane page, GridPane patientInfo, double printableWidth, double inset) {
+        double headerWidth = printableWidth * 0.48;
+        patientInfo.setPrefWidth(headerWidth);
+        patientInfo.setMaxWidth(headerWidth);
+        StackPane.setAlignment(patientInfo, Pos.TOP_RIGHT);
+        StackPane.setMargin(patientInfo, new Insets(inset, inset, 0, 0));
+        page.getChildren().add(patientInfo);
     }
 
     private PageContext newPage(List<StackPane> pages, double printableWidth, double printableHeight,
@@ -1253,10 +1271,24 @@ public class ReceptionDashboardController {
                 "Patient: " + patient.getFullName() + "\n" +
                 "MRN: " + patient.getMrn() + "\n\n");
 
-        StringBuilder tests = new StringBuilder("TESTS ORDERED\n" + "-".repeat(30) + "\n");
+        java.util.Set<Long> panelTestIds = getPanelTestIds(order);
+        StringBuilder tests = new StringBuilder("ITEMS ORDERED\n" + "-".repeat(30) + "\n");
+
+        if (order.getPanels() != null && !order.getPanels().isEmpty()) {
+            tests.append("PANELS\n");
+            for (Panel panel : order.getPanels()) {
+                tests.append(panel.getPanelName()).append(" - ")
+                        .append(localeFormatService.formatCurrency(
+                                panel.getPrice() != null ? panel.getPrice() : java.math.BigDecimal.ZERO))
+                        .append("\n");
+            }
+            tests.append("\n");
+        }
+
+        tests.append("TESTS\n");
         if (order.getResults() != null) {
             for (LabResult result : order.getResults()) {
-                if (result.getTestDefinition() != null) {
+                if (result.getTestDefinition() != null && !panelTestIds.contains(result.getTestDefinition().getId())) {
                     tests.append(result.getTestDefinition().getTestName()).append(" - ")
                             .append(localeFormatService.formatCurrency(
                                     result.getTestDefinition().getPrice() != null
@@ -1288,6 +1320,35 @@ public class ReceptionDashboardController {
 
         flow.getChildren().addAll(header, orderInfo, testsText, billing, footer);
         return flow;
+    }
+
+    private java.util.Set<Long> getPanelTestIds(LabOrder order) {
+        if (order == null || order.getPanels() == null || order.getPanels().isEmpty()) {
+            return java.util.Set.of();
+        }
+        List<Integer> panelIds = order.getPanels().stream()
+                .map(Panel::getId)
+                .filter(java.util.Objects::nonNull)
+                .collect(java.util.stream.Collectors.toList());
+        if (panelIds.isEmpty()) {
+            return java.util.Set.of();
+        }
+        List<Panel> panels = panelRepository.findAllWithTestsById(panelIds);
+        java.util.Set<Long> panelTestIds = new java.util.HashSet<>();
+        for (Panel panel : panels) {
+            if (panel.getPrice() == null) {
+                continue;
+            }
+            if (panel.getTests() == null) {
+                continue;
+            }
+            for (TestDefinition test : panel.getTests()) {
+                if (test.getId() != null) {
+                    panelTestIds.add(test.getId());
+                }
+            }
+        }
+        return panelTestIds;
     }
 
     private void openReceiptReprintDialog() {

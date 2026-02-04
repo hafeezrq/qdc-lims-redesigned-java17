@@ -9,6 +9,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 /**
  * Seeds baseline master data into a fresh database on application startup.
@@ -23,9 +24,11 @@ public class DataSeeder implements CommandLineRunner {
     private final InventoryItemRepository inventoryRepo;
     private final DoctorRepository doctorRepo;
     private final TestDefinitionRepository testRepo;
+    private final TestCategoryRepository testCategoryRepo;
     private final TestConsumptionRepository recipeRepo;
     private final PatientService patientService;
     private final DepartmentRepository departmentRepo;
+    private final PanelRepository panelRepo;
 
     /**
      * Creates the data seeder.
@@ -41,16 +44,20 @@ public class DataSeeder implements CommandLineRunner {
     public DataSeeder(InventoryItemRepository inventoryRepo,
             DoctorRepository doctorRepo,
             TestDefinitionRepository testRepo,
+            TestCategoryRepository testCategoryRepo,
             TestConsumptionRepository recipeRepo,
             PatientRepository patientRepo,
             PatientService patientService,
-            DepartmentRepository departmentRepo) {
+            DepartmentRepository departmentRepo,
+            PanelRepository panelRepo) {
         this.inventoryRepo = inventoryRepo;
         this.doctorRepo = doctorRepo;
         this.testRepo = testRepo;
+        this.testCategoryRepo = testCategoryRepo;
         this.recipeRepo = recipeRepo;
         this.patientService = patientService;
         this.departmentRepo = departmentRepo;
+        this.panelRepo = panelRepo;
     }
 
     /**
@@ -118,7 +125,7 @@ public class DataSeeder implements CommandLineRunner {
         createTest("T4", "T4", "Thyroid", BigDecimal.valueOf(400.0), "mcg/dL",
                 BigDecimal.valueOf(5.0), BigDecimal.valueOf(12.0));
 
-        createTest("Urine Routine", "URINE-RE", "Urine", BigDecimal.valueOf(200.0), null, null, null);
+        createUrineRoutinePanel();
         createTest("Urine Culture", "URINE-CS", "Urine", BigDecimal.valueOf(800.0), null, null, null);
         createTest("Urine Pregnancy (UPT)", "UPT", "Urine", BigDecimal.valueOf(200.0), null, null, null);
 
@@ -194,6 +201,118 @@ public class DataSeeder implements CommandLineRunner {
         recipeRepo.save(tc);
     }
 
+    private void createUrineRoutinePanel() {
+        Department urineDept = getOrCreateDepartment("Urine");
+        TestCategory physical = getOrCreateCategory("Physical", urineDept);
+        TestCategory chemical = getOrCreateCategory("Chemical", urineDept);
+        TestCategory microscopic = getOrCreateCategory("Microscopic", urineDept);
+
+        BigDecimal perTestPrice = BigDecimal.valueOf(10.0);
+
+        TestDefinition color = createTestWithCategory("Color", "UR-COLOR", urineDept, physical,
+                perTestPrice, null, null, null);
+        TestDefinition appearance = createTestWithCategory("Appearance / Clarity", "UR-APPR", urineDept, physical,
+                perTestPrice, null, null, null);
+        TestDefinition odor = createTestWithCategory("Odor", "UR-ODOR", urineDept, physical,
+                perTestPrice, null, null, null);
+        TestDefinition volume = createTestWithCategory("Volume (24-hr)", "UR-VOL", urineDept, physical,
+                perTestPrice, "mL/day", BigDecimal.valueOf(800.0), BigDecimal.valueOf(2000.0));
+        TestDefinition specificGravity = createTestWithCategory("Specific Gravity", "UR-SG", urineDept, physical,
+                perTestPrice, null, BigDecimal.valueOf(1.005), BigDecimal.valueOf(1.030));
+        TestDefinition ph = createTestWithCategory("pH (Reaction)", "UR-PH", urineDept, physical,
+                perTestPrice, null, BigDecimal.valueOf(4.5), BigDecimal.valueOf(8.0));
+
+        TestDefinition protein = createTestWithCategory("Protein (Albumin)", "UR-PROT", urineDept, chemical,
+                perTestPrice, null, null, null);
+        TestDefinition glucose = createTestWithCategory("Glucose (Sugar)", "UR-GLU", urineDept, chemical,
+                perTestPrice, null, null, null);
+        TestDefinition ketone = createTestWithCategory("Ketone Bodies", "UR-KET", urineDept, chemical,
+                perTestPrice, null, null, null);
+        TestDefinition bilirubin = createTestWithCategory("Bilirubin (Bile pigments)", "UR-BIL", urineDept, chemical,
+                perTestPrice, null, null, null);
+        TestDefinition urobilinogen = createTestWithCategory("Urobilinogen", "UR-URO", urineDept, chemical,
+                perTestPrice, "mg/dL", BigDecimal.valueOf(0.2), BigDecimal.valueOf(1.0));
+        TestDefinition blood = createTestWithCategory("Blood / Hemoglobin", "UR-BLD", urineDept, chemical,
+                perTestPrice, null, null, null);
+        TestDefinition nitrite = createTestWithCategory("Nitrite", "UR-NIT", urineDept, chemical,
+                perTestPrice, null, null, null);
+        TestDefinition leukocyte = createTestWithCategory("Leukocyte Esterase", "UR-LEU", urineDept, chemical,
+                perTestPrice, null, null, null);
+
+        TestDefinition rbc = createTestWithCategory("Red Blood Cells (RBCs)", "UR-RBC", urineDept, microscopic,
+                perTestPrice, "/HPF", BigDecimal.valueOf(0.0), BigDecimal.valueOf(2.0));
+        TestDefinition wbc = createTestWithCategory("White Blood Cells (Pus cells)", "UR-WBC", urineDept, microscopic,
+                perTestPrice, "/HPF", BigDecimal.valueOf(0.0), BigDecimal.valueOf(5.0));
+        TestDefinition epithelial = createTestWithCategory("Epithelial Cells", "UR-EP", urineDept, microscopic,
+                perTestPrice, "/HPF", BigDecimal.valueOf(0.0), BigDecimal.valueOf(5.0));
+        TestDefinition casts = createTestWithCategory("Casts", "UR-CAST", urineDept, microscopic,
+                perTestPrice, null, null, null);
+        TestDefinition crystals = createTestWithCategory("Crystals", "UR-CRYS", urineDept, microscopic,
+                perTestPrice, null, null, null);
+        TestDefinition bacteria = createTestWithCategory("Bacteria", "UR-BACT", urineDept, microscopic,
+                perTestPrice, null, null, null);
+        TestDefinition yeast = createTestWithCategory("Yeast / Fungi", "UR-YEAST", urineDept, microscopic,
+                perTestPrice, null, null, null);
+        TestDefinition parasites = createTestWithCategory("Parasites", "UR-PARA", urineDept, microscopic,
+                perTestPrice, null, null, null);
+        TestDefinition mucus = createTestWithCategory("Mucus threads", "UR-MUC", urineDept, microscopic,
+                perTestPrice, null, null, null);
+
+        Panel panel = new Panel();
+        panel.setPanelName("Urine Routine");
+        panel.setDepartment(urineDept);
+        panel.setPrice(BigDecimal.valueOf(200.0));
+        panel.setActive(true);
+        panel.setTests(List.of(color, appearance, odor, volume, specificGravity, ph,
+                protein, glucose, ketone, bilirubin, urobilinogen, blood, nitrite, leukocyte,
+                rbc, wbc, epithelial, casts, crystals, bacteria, yeast, parasites, mucus));
+        panelRepo.save(panel);
+    }
+
+    private Department getOrCreateDepartment(String name) {
+        return departmentRepo.findByName(name).orElseGet(() -> {
+            Department d = new Department();
+            d.setName(name);
+            String code = name.length() > 3 ? name.substring(0, 3).toUpperCase() : name.toUpperCase();
+            d.setCode(code);
+            d.setActive(true);
+            return departmentRepo.save(d);
+        });
+    }
+
+    private TestCategory getOrCreateCategory(String name, Department department) {
+        return testCategoryRepo.findByNameAndDepartment(name, department)
+                .orElseGet(() -> {
+                    TestCategory category = new TestCategory();
+                    category.setName(name);
+                    category.setDepartment(department);
+                    category.setActive(true);
+                    return testCategoryRepo.save(category);
+                });
+    }
+
+    private TestDefinition createTestWithCategory(String name, String shortCode, Department department,
+            TestCategory category, java.math.BigDecimal price, String unit, java.math.BigDecimal minRange,
+            java.math.BigDecimal maxRange) {
+        TestDefinition test = new TestDefinition();
+        test.setTestName(name);
+        test.setShortCode(shortCode);
+        test.setDepartment(department);
+        test.setCategory(category);
+        if (price != null) {
+            test.setPrice(price);
+        }
+        test.setUnit(unit);
+        if (minRange != null && minRange.compareTo(java.math.BigDecimal.ZERO) > 0) {
+            test.setMinRange(minRange);
+        }
+        if (maxRange != null && maxRange.compareTo(java.math.BigDecimal.ZERO) > 0) {
+            test.setMaxRange(maxRange);
+        }
+        test.setActive(true);
+        return testRepo.save(test);
+    }
+
     /**
      * Creates a test definition and ensures its department exists.
      */
@@ -204,15 +323,7 @@ public class DataSeeder implements CommandLineRunner {
         test.setTestName(name);
         test.setShortCode(shortCode);
 
-        Department dept = departmentRepo.findByName(categoryName).orElseGet(() -> {
-            Department d = new Department();
-            d.setName(categoryName);
-            String code = categoryName.length() > 3 ? categoryName.substring(0, 3).toUpperCase()
-                    : categoryName.toUpperCase();
-            d.setCode(code);
-            d.setActive(true);
-            return departmentRepo.save(d);
-        });
+        Department dept = getOrCreateDepartment(categoryName);
 
         test.setDepartment(dept);
 

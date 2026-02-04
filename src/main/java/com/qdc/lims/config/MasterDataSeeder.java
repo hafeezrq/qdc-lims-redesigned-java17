@@ -3,6 +3,7 @@ package com.qdc.lims.config;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.qdc.lims.entity.Department;
 import com.qdc.lims.entity.InventoryItem;
+import com.qdc.lims.entity.Panel;
 import com.qdc.lims.entity.ReferenceRange;
 import com.qdc.lims.entity.TestCategory;
 import com.qdc.lims.entity.TestConsumption;
@@ -10,6 +11,7 @@ import com.qdc.lims.entity.TestDefinition;
 import com.qdc.lims.repository.DepartmentRepository;
 import com.qdc.lims.repository.InventoryItemRepository;
 import com.qdc.lims.repository.ReferenceRangeRepository;
+import com.qdc.lims.repository.PanelRepository;
 import com.qdc.lims.repository.TestCategoryRepository;
 import com.qdc.lims.repository.TestConsumptionRepository;
 import com.qdc.lims.repository.TestDefinitionRepository;
@@ -48,6 +50,7 @@ public class MasterDataSeeder implements ApplicationRunner {
     private final InventoryItemRepository inventoryRepository;
     private final TestCategoryRepository testCategoryRepository;
     private final TestDefinitionRepository testDefinitionRepository;
+    private final PanelRepository panelRepository;
     private final TestConsumptionRepository testConsumptionRepository;
     private final ReferenceRangeRepository referenceRangeRepository;
     private final ObjectMapper objectMapper;
@@ -63,6 +66,7 @@ public class MasterDataSeeder implements ApplicationRunner {
             InventoryItemRepository inventoryRepository,
             TestCategoryRepository testCategoryRepository,
             TestDefinitionRepository testDefinitionRepository,
+            PanelRepository panelRepository,
             TestConsumptionRepository testConsumptionRepository,
             ReferenceRangeRepository referenceRangeRepository,
             ResourceLoader resourceLoader) {
@@ -70,6 +74,7 @@ public class MasterDataSeeder implements ApplicationRunner {
         this.inventoryRepository = inventoryRepository;
         this.testCategoryRepository = testCategoryRepository;
         this.testDefinitionRepository = testDefinitionRepository;
+        this.panelRepository = panelRepository;
         this.testConsumptionRepository = testConsumptionRepository;
         this.referenceRangeRepository = referenceRangeRepository;
         this.objectMapper = new ObjectMapper().findAndRegisterModules();
@@ -215,6 +220,33 @@ public class MasterDataSeeder implements ApplicationRunner {
             tests.put(normalizeKey(test.getTestName()), test);
         }
 
+        List<PanelSeed> panelSeeds = seed.panels != null ? seed.panels : List.of();
+        for (PanelSeed panelSeed : panelSeeds) {
+            if (panelSeed == null || isBlank(panelSeed.name)) {
+                continue;
+            }
+            Department dept = resolveDepartment(panelSeed.department, departments);
+            Panel panel = new Panel();
+            panel.setPanelName(panelSeed.name);
+            panel.setDepartment(dept);
+            panel.setPrice(panelSeed.price);
+            panel.setActive(panelSeed.active == null || panelSeed.active);
+
+            List<String> panelTests = panelSeed.tests != null ? panelSeed.tests : List.of();
+            java.util.List<TestDefinition> resolvedTests = new java.util.ArrayList<>();
+            for (String testRef : panelTests) {
+                if (isBlank(testRef)) {
+                    continue;
+                }
+                TestDefinition test = tests.get(normalizeKey(testRef));
+                if (test != null) {
+                    resolvedTests.add(test);
+                }
+            }
+            panel.setTests(resolvedTests);
+            panelRepository.save(panel);
+        }
+
         Map<Long, Boolean> rangeSeeded = new HashMap<>();
         List<RangeSeed> rangeSeeds = seed.ranges != null ? seed.ranges : List.of();
         for (RangeSeed rangeSeed : rangeSeeds) {
@@ -343,6 +375,7 @@ public class MasterDataSeeder implements ApplicationRunner {
         public List<CategorySeed> categories;
         public List<InventorySeed> inventory;
         public List<TestSeed> tests;
+        public List<PanelSeed> panels;
         public List<RangeSeed> ranges;
         public List<RecipeSeed> recipes;
     }
@@ -379,6 +412,14 @@ public class MasterDataSeeder implements ApplicationRunner {
         public BigDecimal minRange;
         public BigDecimal maxRange;
         public Boolean active;
+    }
+
+    public static class PanelSeed {
+        public String name;
+        public String department;
+        public BigDecimal price;
+        public Boolean active;
+        public List<String> tests;
     }
 
     public static class RangeSeed {

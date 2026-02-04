@@ -81,9 +81,10 @@ public class OrderService {
         List<Integer> panelIds = request.panelIds() != null ? request.panelIds() : List.of();
 
         // Fetch tests from panels
+        List<Panel> panels = List.of();
         List<TestDefinition> panelTests = List.of();
         if (!panelIds.isEmpty()) {
-            List<Panel> panels = panelRepo.findAllById(panelIds);
+            panels = panelRepo.findAllWithTestsById(panelIds);
             panelTests = panels.stream()
                     .flatMap(panel -> panel.getTests().stream())
                     .toList();
@@ -101,6 +102,28 @@ public class OrderService {
             throw new RuntimeException("At least one test must be selected to create an order.");
         }
 
+        if (!panels.isEmpty()) {
+            order.setPanels(new java.util.ArrayList<>(panels));
+        }
+
+        java.util.Set<Long> panelTestIds = panels.stream()
+                .filter(panel -> panel.getPrice() != null)
+                .flatMap(panel -> panel.getTests().stream())
+                .map(TestDefinition::getId)
+                .collect(java.util.stream.Collectors.toSet());
+
+        for (Panel panel : panels) {
+            if (panel.getPrice() != null) {
+                totalAmount = totalAmount.add(panel.getPrice());
+            }
+        }
+
+        for (TestDefinition test : individualTests) {
+            if (!panelTestIds.contains(test.getId()) && test.getPrice() != null) {
+                totalAmount = totalAmount.add(test.getPrice());
+            }
+        }
+
         for (TestDefinition test : allTests) {
             // A. Create Empty Result Slot
             LabResult result = new LabResult();
@@ -109,11 +132,6 @@ public class OrderService {
             result.setResultValue(""); // Waiting for Lab Tech
             result.setStatus("PENDING");
             order.getResults().add(result);
-
-            // B. Add Price to Bill
-            if (test.getPrice() != null) {
-                totalAmount = totalAmount.add(test.getPrice());
-            }
 
             // C. INVENTORY LOGIC (Automatic Deduction)
             List<TestConsumption> recipe = consumptionRepo.findByTest(test);

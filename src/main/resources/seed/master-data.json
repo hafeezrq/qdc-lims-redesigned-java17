@@ -141,6 +141,24 @@
       "active": true
     },
     {
+      "name": "Physical",
+      "department": "Urine",
+      "description": "Physical examination",
+      "active": true
+    },
+    {
+      "name": "Chemical",
+      "department": "Urine",
+      "description": "Chemical examination",
+      "active": true
+    },
+    {
+      "name": "Microscopic",
+      "department": "Urine",
+      "description": "Microscopic examination",
+      "active": true
+    },
+    {
       "name": "Pregnancy",
       "department": "Urine",
       "description": "Pregnancy testing",
@@ -775,12 +793,254 @@
       "active": true
     },
     {
-      "name": "Urine Routine",
-      "shortCode": "URINE-RE",
+      "name": "Color",
+      "shortCode": "UR-COLOR",
       "department": "Urine",
-      "category": "Urinalysis",
+      "category": "Physical",
       "unit": null,
-      "price": 200,
+      "price": 10,
+      "minRange": null,
+      "maxRange": null,
+      "active": true
+    },
+    {
+      "name": "Appearance / Clarity",
+      "shortCode": "UR-APPR",
+      "department": "Urine",
+      "category": "Physical",
+      "unit": null,
+      "price": 10,
+      "minRange": null,
+      "maxRange": null,
+      "active": true
+    },
+    {
+      "name": "Odor",
+      "shortCode": "UR-ODOR",
+      "department": "Urine",
+      "category": "Physical",
+      "unit": null,
+      "price": 10,
+      "minRange": null,
+      "maxRange": null,
+      "active": true
+    },
+    {
+      "name": "Volume (24-hr)",
+      "shortCode": "UR-VOL",
+      "department": "Urine",
+      "category": "Physical",
+      "unit": "mL/day",
+      "price": 10,
+      "minRange": 800,
+      "maxRange": 2000,
+      "active": true
+    },
+    {
+      "name": "Specific Gravity",
+      "shortCode": "UR-SG",
+      "department": "Urine",
+      "category": "Physical",
+      "unit": null,
+      "price": 10,
+      "minRange": 1.005,
+      "maxRange": 1.03,
+      "active": true
+    },
+    {
+      "name": "pH (Reaction)",
+      "shortCode": "UR-PH",
+      "department": "Urine",
+      "category": "Physical",
+      "unit": null,
+      "price": 10,
+      "minRange": 4.5,
+      "maxRange": 8.0,
+      "active": true
+    },
+    {
+      "name": "Protein (Albumin)",
+      "shortCode": "UR-PROT",
+      "department": "Urine",
+      "category": "Chemical",
+      "unit": null,
+      "price": 10,
+      "minRange": null,
+      "maxRange": null,
+      "active": true
+    },
+    {
+      "name": "Glucose (Sugar)",
+      "shortCode": "UR-GLU",
+      "department": "Urine",
+      "category": "Chemical",
+      "unit": null,
+      "price": 10,
+      "minRange": null,
+      "maxRange": null,
+      "active": true
+    },
+    {
+      "name": "Ketone Bodies",
+      "shortCode": "UR-KET",
+      "department": "Urine",
+      "category": "Chemical",
+      "unit": null,
+      "price": 10,
+      "minRange": null,
+      "maxRange": null,
+      "active": true
+    },
+    {
+      "name": "Bilirubin (Bile pigments)",
+      "shortCode": "UR-BIL",
+      "department": "Urine",
+      "category": "Chemical",
+      "unit": null,
+      "price": 10,
+      "minRange": null,
+      "maxRange": null,
+      "active": true
+    },
+    {
+      "name": "Urobilinogen",
+      "shortCode": "UR-URO",
+      "department": "Urine",
+      "category": "Chemical",
+      "unit": "mg/dL",
+      "price": 10,
+      "minRange": 0.2,
+      "maxRange": 1.0,
+      "active": true
+    },
+    {
+      "name": "Blood / Hemoglobin",
+      "shortCode": "UR-BLD",
+      "department": "Urine",
+      "category": "Chemical",
+      "unit": null,
+      "price": 10,
+      "minRange": null,
+      "maxRange": null,
+      "active": true
+    },
+    {
+      "name": "Nitrite",
+      "shortCode": "UR-NIT",
+      "department": "Urine",
+      "category": "Chemical",
+      "unit": null,
+      "price": 10,
+      "minRange": null,
+      "maxRange": null,
+      "active": true
+    },
+    {
+      "name": "Leukocyte Esterase",
+      "shortCode": "UR-LEU",
+      "department": "Urine",
+      "category": "Chemical",
+      "unit": null,
+      "price": 10,
+      "minRange": null,
+      "maxRange": null,
+      "active": true
+    },
+    {
+      "name": "Red Blood Cells (RBCs)",
+      "shortCode": "UR-RBC",
+      "department": "Urine",
+      "category": "Microscopic",
+      "unit": "/HPF",
+      "price": 10,
+      "minRange": 0,
+      "maxRange": 2,
+      "active": true
+    },
+    {
+      "name": "White Blood Cells (Pus cells)",
+      "shortCode": "UR-WBC",
+      "department": "Urine",
+      "category": "Microscopic",
+      "unit": "/HPF",
+      "price": 10,
+      "minRange": 0,
+      "maxRange": 5,
+      "active": true
+    },
+    {
+      "name": "Epithelial Cells",
+      "shortCode": "UR-EP",
+      "department": "Urine",
+      "category": "Microscopic",
+      "unit": "/HPF",
+      "price": 10,
+      "minRange": 0,
+      "maxRange": 5,
+      "active": true
+    },
+    {
+      "name": "Casts",
+      "shortCode": "UR-CAST",
+      "department": "Urine",
+      "category": "Microscopic",
+      "unit": null,
+      "price": 10,
+      "minRange": null,
+      "maxRange": null,
+      "active": true
+    },
+    {
+      "name": "Crystals",
+      "shortCode": "UR-CRYS",
+      "department": "Urine",
+      "category": "Microscopic",
+      "unit": null,
+      "price": 10,
+      "minRange": null,
+      "maxRange": null,
+      "active": true
+    },
+    {
+      "name": "Bacteria",
+      "shortCode": "UR-BACT",
+      "department": "Urine",
+      "category": "Microscopic",
+      "unit": null,
+      "price": 10,
+      "minRange": null,
+      "maxRange": null,
+      "active": true
+    },
+    {
+      "name": "Yeast / Fungi",
+      "shortCode": "UR-YEAST",
+      "department": "Urine",
+      "category": "Microscopic",
+      "unit": null,
+      "price": 10,
+      "minRange": null,
+      "maxRange": null,
+      "active": true
+    },
+    {
+      "name": "Parasites",
+      "shortCode": "UR-PARA",
+      "department": "Urine",
+      "category": "Microscopic",
+      "unit": null,
+      "price": 10,
+      "minRange": null,
+      "maxRange": null,
+      "active": true
+    },
+    {
+      "name": "Mucus threads",
+      "shortCode": "UR-MUC",
+      "department": "Urine",
+      "category": "Microscopic",
+      "unit": null,
+      "price": 10,
       "minRange": null,
       "maxRange": null,
       "active": true
@@ -817,6 +1077,39 @@
       "minRange": null,
       "maxRange": null,
       "active": true
+    }
+  ],
+  "panels": [
+    {
+      "name": "Urine Routine",
+      "department": "Urine",
+      "price": 200,
+      "active": true,
+      "tests": [
+        "UR-COLOR",
+        "UR-APPR",
+        "UR-ODOR",
+        "UR-VOL",
+        "UR-SG",
+        "UR-PH",
+        "UR-PROT",
+        "UR-GLU",
+        "UR-KET",
+        "UR-BIL",
+        "UR-URO",
+        "UR-BLD",
+        "UR-NIT",
+        "UR-LEU",
+        "UR-RBC",
+        "UR-WBC",
+        "UR-EP",
+        "UR-CAST",
+        "UR-CRYS",
+        "UR-BACT",
+        "UR-YEAST",
+        "UR-PARA",
+        "UR-MUC"
+      ]
     }
   ],
   "ranges": [

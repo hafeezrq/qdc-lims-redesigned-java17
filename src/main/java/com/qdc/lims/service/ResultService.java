@@ -173,7 +173,7 @@ public class ResultService {
         if (allTestsDone) {
             dbOrder.setStatus("COMPLETED");
         } else {
-            dbOrder.setStatus("IN_PROGRESS");
+            dbOrder.setStatus("PENDING");
         }
         orderRepo.save(dbOrder);
     }

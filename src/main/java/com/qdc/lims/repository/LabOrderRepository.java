@@ -8,6 +8,7 @@ import java.util.List;
 
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
@@ -19,7 +20,8 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface LabOrderRepository extends JpaRepository<LabOrder, Long> {
 
-    @EntityGraph(attributePaths = { "patient", "results", "results.testDefinition" })
+    @EntityGraph(attributePaths = { "patient", "results", "results.testDefinition",
+            "results.testDefinition.category" })
     List<LabOrder> findAll();
 
     @Query("""
@@ -138,4 +140,13 @@ public interface LabOrderRepository extends JpaRepository<LabOrder, Long> {
      * @return list of orders with unpaid balance
      */
     List<LabOrder> findByBalanceDueGreaterThan(BigDecimal minBalance);
+
+    /**
+     * Normalizes legacy in-progress orders back to pending status.
+     *
+     * @return number of rows updated
+     */
+    @Modifying
+    @Query("UPDATE LabOrder o SET o.status = 'PENDING' WHERE o.status = 'IN_PROGRESS'")
+    int normalizeInProgressToPending();
 }

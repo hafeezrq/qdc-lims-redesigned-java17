@@ -75,6 +75,7 @@ public class ResultEntryController {
     private final LocaleFormatService localeFormatService;
     private final ReferenceRangeRepository referenceRangeRepository;
     private LabOrder currentOrder;
+    private boolean adjustingSelection = false;
 
     public ResultEntryController(LabOrderRepository orderRepository,
             LabResultRepository resultRepository,
@@ -103,6 +104,23 @@ public class ResultEntryController {
         resultsTable.setEditable(true);
         resultsTable.getSelectionModel().setCellSelectionEnabled(true);
         resultsTable.getSelectionModel().setSelectionMode(SelectionMode.SINGLE);
+        resultsTable.getSelectionModel().selectedIndexProperty().addListener((obs, oldVal, newVal) -> {
+            if (adjustingSelection || newVal == null) {
+                return;
+            }
+            int row = newVal.intValue();
+            if (row < 0) {
+                return;
+            }
+            adjustingSelection = true;
+            Platform.runLater(() -> {
+                resultsTable.requestFocus();
+                resultsTable.getSelectionModel().clearAndSelect(row, resultValueColumn);
+                resultsTable.getFocusModel().focus(row, resultValueColumn);
+                resultsTable.edit(row, resultValueColumn);
+                adjustingSelection = false;
+            });
+        });
 
         testNameColumn.setCellValueFactory(
                 cellData -> new SimpleStringProperty(cellData.getValue().getTestDefinition().getTestName()));
@@ -169,11 +187,20 @@ public class ResultEntryController {
                 // --- NAVIGATION LOGIC ---
                 textField.setOnKeyPressed(event -> {
                     if (event.getCode() == javafx.scene.input.KeyCode.ENTER
-                            || event.getCode() == javafx.scene.input.KeyCode.TAB) {
+                            || event.getCode() == javafx.scene.input.KeyCode.TAB
+                            || event.getCode() == javafx.scene.input.KeyCode.DOWN
+                            || event.getCode() == javafx.scene.input.KeyCode.UP) {
                         commitEdit(textField.getText());
                         event.consume();
 
-                        int delta = event.isShiftDown() ? -1 : 1;
+                        int delta;
+                        if (event.getCode() == javafx.scene.input.KeyCode.UP) {
+                            delta = -1;
+                        } else if (event.getCode() == javafx.scene.input.KeyCode.DOWN) {
+                            delta = 1;
+                        } else {
+                            delta = event.isShiftDown() ? -1 : 1;
+                        }
                         navigateToRow(delta);
                     } else if (event.getCode() == javafx.scene.input.KeyCode.ESCAPE) {
                         super.cancelEdit();
@@ -199,12 +226,16 @@ public class ResultEntryController {
                     return;
                 }
 
+                adjustingSelection = true;
                 Platform.runLater(() -> {
                     getTableView().requestFocus();
                     getTableView().getSelectionModel().clearAndSelect(targetRow, getTableColumn());
                     getTableView().scrollTo(targetRow);
                     getTableView().getFocusModel().focus(targetRow, getTableColumn());
-                    Platform.runLater(() -> getTableView().edit(targetRow, getTableColumn()));
+                    Platform.runLater(() -> {
+                        getTableView().edit(targetRow, getTableColumn());
+                        adjustingSelection = false;
+                    });
                 });
             }
         });
@@ -510,35 +541,11 @@ public class ResultEntryController {
                 }
             }
 
-            // For pending orders: Check if all results are entered - if so, auto-complete
-            // If not all entered, ask user if they want to mark as completed anyway
-            boolean shouldComplete = false;
+            boolean allEntered = enteredCount == totalCount;
+            currentOrder.setResults(new ArrayList<>(resultsTable.getItems()));
+            resultService.saveResultsFromForm(currentOrder);
 
-            if (enteredCount == totalCount) {
-                // All results entered - auto-complete
-                shouldComplete = true;
-            } else {
-                // Not all results entered - ask user
-                Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
-                alert.setTitle("Incomplete Results");
-                alert.setHeaderText("Not all results have been entered");
-                alert.setContentText("Only " + enteredCount + " of " + totalCount +
-                        " tests have results. Do you want to mark this order as completed anyway?");
-
-                ButtonType completeBtn = new ButtonType("Mark Completed", ButtonBar.ButtonData.YES);
-                ButtonType saveOnlyBtn = new ButtonType("Save Only", ButtonBar.ButtonData.NO);
-                alert.getButtonTypes().setAll(completeBtn, saveOnlyBtn);
-
-                ButtonType response = alert.showAndWait().orElse(saveOnlyBtn);
-                shouldComplete = (response == completeBtn);
-            }
-
-            if (shouldComplete) {
-                // Mark order as completed using ResultService for proper transaction handling
-                System.out.println("[ResultEntryController] Auto-completing order after save");
-                currentOrder.setResults(new ArrayList<>(resultsTable.getItems()));
-                resultService.saveResultsFromForm(currentOrder);
-
+            if (allEntered) {
                 showSuccess("Results saved and Order #" + currentOrder.getId() + " marked as COMPLETED!");
 
                 // Close window after a short delay
@@ -580,15 +587,8 @@ public class ResultEntryController {
         }
 
         if (!allEntered) {
-            Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
-            alert.setTitle("Incomplete Results");
-            alert.setHeaderText("Not all results have been entered");
-            alert.setContentText("Only " + enteredCount + " of " + resultsTable.getItems().size() +
-                    " tests have results. Do you still want to mark this order as completed?");
-
-            if (alert.showAndWait().orElse(ButtonType.CANCEL) != ButtonType.OK) {
-                return;
-            }
+            showError("All test results must be entered before marking this order as completed.");
+            return;
         }
 
         try {

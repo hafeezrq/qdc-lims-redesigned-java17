@@ -3,6 +3,7 @@ package com.qdc.lims.entity;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 /**
@@ -29,6 +30,12 @@ public class Panel {
      */
     @Column(nullable = false)
     private String panelName;
+
+    /**
+     * Single price charged for the panel (nullable until configured).
+     */
+    @Column(precision = 19, scale = 4)
+    private BigDecimal price;
 
     /**
      * Owning department (optional in the current schema).

@@ -3,6 +3,7 @@ package com.qdc.lims.ui.controller;
 import com.qdc.lims.dto.OrderRequest;
 import com.qdc.lims.entity.Doctor;
 import com.qdc.lims.entity.LabOrder;
+import com.qdc.lims.entity.Panel;
 import com.qdc.lims.entity.Patient;
 import com.qdc.lims.entity.TestDefinition;
 import com.qdc.lims.repository.DoctorRepository;
@@ -18,6 +19,7 @@ import javafx.fxml.FXML;
 import javafx.geometry.Insets;
 import javafx.scene.control.*;
 import javafx.scene.layout.FlowPane;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 import javafx.util.StringConverter;
@@ -87,6 +89,10 @@ public class CreateOrderController {
     // Map to track selected panels
     private final Map<Integer, CheckBox> panelCheckboxMap = new HashMap<>();
     private final Set<Integer> selectedPanelIds = new HashSet<>();
+    private final Map<Integer, Panel> panelsById = new HashMap<>();
+    private final Map<Integer, List<TestDefinition>> panelTestsMap = new HashMap<>();
+    private final Map<Long, Set<Integer>> testPanelMembership = new HashMap<>();
+    private boolean bulkSelection = false;
 
     private ObservableList<String> selectedTestNames = FXCollections.observableArrayList();
 
@@ -113,8 +119,8 @@ public class CreateOrderController {
         loadTestsIntoCategoryTabs();
 
         // Add listeners for billing calculation
-        discountField.textProperty().addListener((obs, old, newVal) -> calculateBalance());
-        cashPaidField.textProperty().addListener((obs, old, newVal) -> calculateBalance());
+        discountField.textProperty().addListener((obs, old, newVal) -> calculateBalance(computeTotalAmount()));
+        cashPaidField.textProperty().addListener((obs, old, newVal) -> calculateBalance(computeTotalAmount()));
 
         selectedTestsListView.setItems(selectedTestNames);
 
@@ -187,7 +193,7 @@ public class CreateOrderController {
                 .sorted(Comparator.comparing(TestDefinition::getTestName))
                 .collect(Collectors.toList());
 
-        List<com.qdc.lims.entity.Panel> allPanels = panelRepository.findAllWithTests();
+        List<Panel> allPanels = panelRepository.findAllWithTests();
 
         Map<String, List<TestDefinition>> testsByDept = allTests.stream()
                 .collect(Collectors.groupingBy(
@@ -195,7 +201,7 @@ public class CreateOrderController {
                         LinkedHashMap::new,
                         Collectors.toList()));
 
-        Map<String, List<com.qdc.lims.entity.Panel>> panelsByDept = allPanels.stream()
+        Map<String, List<Panel>> panelsByDept = allPanels.stream()
                 .collect(Collectors.groupingBy(
                         panel -> panel.getDepartment() != null ? panel.getDepartment().getName() : "Other",
                         LinkedHashMap::new,
@@ -206,6 +212,23 @@ public class CreateOrderController {
         selectedTests.clear();
         panelCheckboxMap.clear();
         selectedPanelIds.clear();
+        panelsById.clear();
+        panelTestsMap.clear();
+        testPanelMembership.clear();
+
+        for (Panel panel : allPanels) {
+            panelsById.put(panel.getId(), panel);
+            List<TestDefinition> panelTests = panel.getTests() != null
+                    ? panel.getTests().stream().filter(TestDefinition::getActive).collect(Collectors.toList())
+                    : List.of();
+            panelTestsMap.put(panel.getId(), panelTests);
+            for (TestDefinition test : panelTests) {
+                if (test.getId() == null) {
+                    continue;
+                }
+                testPanelMembership.computeIfAbsent(test.getId(), id -> new HashSet<>()).add(panel.getId());
+            }
+        }
 
         for (String dept : testsByDept.keySet()) {
             Tab tab = new Tab(dept);
@@ -215,39 +238,57 @@ public class CreateOrderController {
             panelTabPane.setTabClosingPolicy(TabPane.TabClosingPolicy.UNAVAILABLE);
             panelTabPane.getStyleClass().add("category-tabs");
 
-            List<com.qdc.lims.entity.Panel> deptPanels = panelsByDept.getOrDefault(dept, List.of());
+            List<Panel> deptPanels = panelsByDept.getOrDefault(dept, List.of());
             Set<Long> testsInPanels = new HashSet<>();
 
-            for (com.qdc.lims.entity.Panel panel : deptPanels) {
-                FlowPane panelTestsPane = new FlowPane();
-                panelTestsPane.setHgap(15);
-                panelTestsPane.setVgap(8);
-                panelTestsPane.setPadding(new Insets(10));
-                panelTestsPane.setStyle("-fx-background-color: white;");
+            for (Panel panel : deptPanels) {
+                VBox panelContent = new VBox(8);
+                panelContent.setPadding(new Insets(10));
+                panelContent.setStyle("-fx-background-color: white;");
 
-                for (TestDefinition test : panel.getTests()) {
-                    CheckBox checkBox = new CheckBox(test.getTestName());
-                    checkBox.setStyle("-fx-font-size: 12; -fx-cursor: hand;");
-                    checkBox.setMinWidth(200);
-                    checkBox.setMaxWidth(280);
-                    checkBox.selectedProperty().addListener((obs, wasSelected, isSelected) -> {
-                        if (isSelected) {
-                            selectedTests.add(test);
-                        } else {
-                            selectedTests.remove(test);
+                HBox panelHeader = new HBox(12);
+                panelHeader.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
+
+                CheckBox panelCheckBox = new CheckBox("Bill as panel");
+                panelCheckBox.setStyle("-fx-font-weight: bold; -fx-cursor: hand;");
+                panelCheckboxMap.put(panel.getId(), panelCheckBox);
+
+                Label priceLabel = new Label(buildPanelPriceLabel(panel));
+                priceLabel.setStyle("-fx-text-fill: #2c3e50; -fx-font-size: 12;");
+
+                panelHeader.getChildren().addAll(panelCheckBox, priceLabel);
+                panelContent.getChildren().add(panelHeader);
+
+                List<TestDefinition> panelTests = panelTestsMap.getOrDefault(panel.getId(), List.of()).stream()
+                        .sorted(Comparator.comparing(TestDefinition::getTestName))
+                        .collect(Collectors.toList());
+                panelContent.getChildren().add(buildGroupedTests(panelTests));
+
+                panelCheckBox.selectedProperty().addListener((obs, wasSelected, isSelected) -> {
+                    if (isSelected) {
+                        selectedPanelIds.add(panel.getId());
+                        bulkSelection = true;
+                        for (TestDefinition test : panelTests) {
+                            CheckBox testCheckBox = testCheckboxMap.get(test.getId());
+                            if (testCheckBox != null) {
+                                testCheckBox.setSelected(true);
+                            }
                         }
-                        updateTotalAmount();
-                        updateSelectedTestsListView();
-                    });
-                    if (test.getShortCode() != null && !test.getShortCode().isEmpty()) {
-                        checkBox.setTooltip(new Tooltip("Code: " + test.getShortCode()));
+                        bulkSelection = false;
+                    } else {
+                        selectedPanelIds.remove(panel.getId());
                     }
-                    testCheckboxMap.put(test.getId(), checkBox);
-                    panelTestsPane.getChildren().add(checkBox);
-                    testsInPanels.add(test.getId());
+                    updateTotalAmount();
+                    updateSelectedTestsListView();
+                });
+
+                for (TestDefinition test : panelTests) {
+                    if (test.getId() != null) {
+                        testsInPanels.add(test.getId());
+                    }
                 }
 
-                ScrollPane panelScrollPane = new ScrollPane(panelTestsPane);
+                ScrollPane panelScrollPane = new ScrollPane(panelContent);
                 panelScrollPane.setFitToWidth(true);
                 panelScrollPane.setStyle("-fx-background-color: transparent;");
                 Tab panelTab = new Tab(panel.getPanelName(), panelScrollPane);
@@ -260,32 +301,12 @@ public class CreateOrderController {
                     .collect(Collectors.toList());
 
             if (!standaloneTests.isEmpty() || deptPanels.isEmpty()) {
-                FlowPane standaloneTestsPane = new FlowPane();
-                standaloneTestsPane.setHgap(15);
-                standaloneTestsPane.setVgap(8);
-                standaloneTestsPane.setPadding(new Insets(10));
-                standaloneTestsPane.setStyle("-fx-background-color: white;");
-                for (TestDefinition test : standaloneTests) {
-                    CheckBox checkBox = new CheckBox(test.getTestName());
-                    checkBox.setStyle("-fx-font-size: 12; -fx-cursor: hand;");
-                    checkBox.setMinWidth(200);
-                    checkBox.setMaxWidth(280);
-                    checkBox.selectedProperty().addListener((obs, wasSelected, isSelected) -> {
-                        if (isSelected) {
-                            selectedTests.add(test);
-                        } else {
-                            selectedTests.remove(test);
-                        }
-                        updateTotalAmount();
-                        updateSelectedTestsListView();
-                    });
-                    if (test.getShortCode() != null && !test.getShortCode().isEmpty()) {
-                        checkBox.setTooltip(new Tooltip("Code: " + test.getShortCode()));
-                    }
-                    testCheckboxMap.put(test.getId(), checkBox);
-                    standaloneTestsPane.getChildren().add(checkBox);
-                }
-                ScrollPane standaloneScrollPane = new ScrollPane(standaloneTestsPane);
+                VBox standaloneContent = new VBox(8);
+                standaloneContent.setPadding(new Insets(10));
+                standaloneContent.setStyle("-fx-background-color: white;");
+                standaloneContent.getChildren().add(buildGroupedTests(standaloneTests));
+
+                ScrollPane standaloneScrollPane = new ScrollPane(standaloneContent);
                 standaloneScrollPane.setFitToWidth(true);
                 standaloneScrollPane.setStyle("-fx-background-color: transparent;");
                 String standaloneTitle = deptPanels.isEmpty() ? "Tests" : "Other Tests";
@@ -297,6 +318,90 @@ public class CreateOrderController {
             tab.setContent(panelTabPane);
             categoryTabPane.getTabs().add(tab);
         }
+    }
+
+    private VBox buildGroupedTests(List<TestDefinition> tests) {
+        VBox container = new VBox(6);
+        if (tests == null || tests.isEmpty()) {
+            return container;
+        }
+
+        List<TestDefinition> sorted = tests.stream()
+                .filter(TestDefinition::getActive)
+                .sorted(Comparator
+                        .comparing((TestDefinition test) -> categoryName(test))
+                        .thenComparing(TestDefinition::getTestName))
+                .collect(Collectors.toList());
+
+        String currentCategory = null;
+        FlowPane currentPane = null;
+        for (TestDefinition test : sorted) {
+            String category = categoryName(test);
+            if (!category.equals(currentCategory)) {
+                Label categoryLabel = new Label(category);
+                categoryLabel.setStyle("-fx-font-weight: bold; -fx-text-fill: #34495e;");
+                container.getChildren().add(categoryLabel);
+
+                currentPane = new FlowPane();
+                currentPane.setHgap(15);
+                currentPane.setVgap(8);
+                currentPane.setPadding(new Insets(4, 0, 6, 0));
+                container.getChildren().add(currentPane);
+                currentCategory = category;
+            }
+            if (currentPane != null) {
+                currentPane.getChildren().add(createTestCheckBox(test));
+            }
+        }
+        return container;
+    }
+
+    private CheckBox createTestCheckBox(TestDefinition test) {
+        CheckBox checkBox = new CheckBox(test.getTestName());
+        checkBox.setStyle("-fx-font-size: 12; -fx-cursor: hand;");
+        checkBox.setMinWidth(200);
+        checkBox.setMaxWidth(280);
+        checkBox.selectedProperty().addListener((obs, wasSelected, isSelected) -> {
+            if (isSelected) {
+                selectedTests.add(test);
+            } else {
+                selectedTests.remove(test);
+                Set<Integer> panels = testPanelMembership.get(test.getId());
+                if (panels != null) {
+                    for (Integer panelId : panels) {
+                        CheckBox panelCheckBox = panelCheckboxMap.get(panelId);
+                        if (panelCheckBox != null && panelCheckBox.isSelected()) {
+                            panelCheckBox.setSelected(false);
+                        }
+                    }
+                }
+            }
+            if (!bulkSelection) {
+                updateTotalAmount();
+                updateSelectedTestsListView();
+            }
+        });
+        if (test.getShortCode() != null && !test.getShortCode().isEmpty()) {
+            checkBox.setTooltip(new Tooltip("Code: " + test.getShortCode()));
+        }
+        if (test.getId() != null) {
+            testCheckboxMap.put(test.getId(), checkBox);
+        }
+        return checkBox;
+    }
+
+    private String categoryName(TestDefinition test) {
+        if (test != null && test.getCategory() != null && test.getCategory().getName() != null) {
+            return test.getCategory().getName();
+        }
+        return "Other";
+    }
+
+    private String buildPanelPriceLabel(Panel panel) {
+        if (panel != null && panel.getPrice() != null) {
+            return "Panel Price: " + localeFormatService.formatCurrency(panel.getPrice());
+        }
+        return "Panel Price: N/A";
     }
 
     @FXML
@@ -355,25 +460,50 @@ public class CreateOrderController {
     }
 
     private void updateTotalAmount() {
-        java.math.BigDecimal total = java.math.BigDecimal.ZERO;
-        for (TestDefinition test : selectedTests) {
-            if (test.getPrice() != null) {
-                total = total.add(test.getPrice());
-            }
-        }
+        java.math.BigDecimal total = computeTotalAmount();
         selectedTestsCountLabel.setText(String.valueOf(selectedTests.size()));
         totalAmountLabel.setText(localeFormatService.formatCurrency(total));
 
-        calculateBalance();
+        calculateBalance(total);
     }
 
-    private void calculateBalance() {
+    private java.math.BigDecimal computeTotalAmount() {
         java.math.BigDecimal total = java.math.BigDecimal.ZERO;
+        java.util.Set<Long> panelTestIds = getSelectedPanelTestIds();
+
+        for (Integer panelId : selectedPanelIds) {
+            Panel panel = panelsById.get(panelId);
+            if (panel != null && panel.getPrice() != null) {
+                total = total.add(panel.getPrice());
+            }
+        }
+
         for (TestDefinition test : selectedTests) {
-            if (test.getPrice() != null) {
+            if (!panelTestIds.contains(test.getId()) && test.getPrice() != null) {
                 total = total.add(test.getPrice());
             }
         }
+        return total;
+    }
+
+    private java.util.Set<Long> getSelectedPanelTestIds() {
+        java.util.Set<Long> panelTestIds = new java.util.HashSet<>();
+        for (Integer panelId : selectedPanelIds) {
+            Panel panel = panelsById.get(panelId);
+            if (panel == null || panel.getPrice() == null) {
+                continue;
+            }
+            List<TestDefinition> tests = panelTestsMap.getOrDefault(panelId, List.of());
+            for (TestDefinition test : tests) {
+                if (test.getId() != null) {
+                    panelTestIds.add(test.getId());
+                }
+            }
+        }
+        return panelTestIds;
+    }
+
+    private void calculateBalance(java.math.BigDecimal total) {
         java.math.BigDecimal discount = parseAmount(discountField.getText());
         java.math.BigDecimal cashPaid = parseAmount(cashPaidField.getText());
         java.math.BigDecimal balance = total.subtract(discount).subtract(cashPaid);
@@ -578,14 +708,28 @@ public class CreateOrderController {
         sb.append("MRN: ").append(order.getPatient().getMrn()).append("\n");
         sb.append("Age/Gender: ").append(order.getPatient().getAge()).append(" / ")
                 .append(order.getPatient().getGender()).append("\n\n");
-        sb.append("--- TESTS ORDERED ---\n");
+        java.util.Set<Long> panelTestIds = getPanelTestIds(order);
 
+        if (order.getPanels() != null && !order.getPanels().isEmpty()) {
+            sb.append("--- PANELS ---\n");
+            for (Panel panel : order.getPanels()) {
+                sb.append("* ").append(panel.getPanelName());
+                sb.append(" - ").append(localeFormatService.formatCurrency(
+                        panel.getPrice() != null ? panel.getPrice() : java.math.BigDecimal.ZERO))
+                        .append("\n");
+            }
+            sb.append("\n");
+        }
+
+        sb.append("--- TESTS ORDERED ---\n");
         for (var result : order.getResults()) {
-            sb.append("* ").append(result.getTestDefinition().getTestName());
+            TestDefinition test = result.getTestDefinition();
+            if (test == null || panelTestIds.contains(test.getId())) {
+                continue;
+            }
+            sb.append("* ").append(test.getTestName());
             sb.append(" - ").append(localeFormatService.formatCurrency(
-                    result.getTestDefinition().getPrice() != null
-                            ? result.getTestDefinition().getPrice()
-                            : java.math.BigDecimal.ZERO))
+                    test.getPrice() != null ? test.getPrice() : java.math.BigDecimal.ZERO))
                     .append("\n");
         }
 
@@ -630,14 +774,29 @@ public class CreateOrderController {
                 .append(" | ").append(order.getPatient().getGender()).append("\n");
         sb.append("--------------------------------\n");
 
-        // Tests - compact format
+        java.util.Set<Long> panelTestIds = getPanelTestIds(order);
+
+        if (order.getPanels() != null && !order.getPanels().isEmpty()) {
+            sb.append("PANELS:\n");
+            for (Panel panel : order.getPanels()) {
+                String panelName = truncate(panel.getPanelName(), 18);
+                String price = localeFormatService.formatCurrency(
+                        panel.getPrice() != null ? panel.getPrice() : java.math.BigDecimal.ZERO);
+                sb.append(String.format("%-18s %8s\n", panelName, price));
+            }
+            sb.append("--------------------------------\n");
+        }
+
+        // Tests - compact format (exclude panel tests)
         sb.append("TESTS:\n");
         for (var result : order.getResults()) {
-            String testName = truncate(result.getTestDefinition().getTestName(), 18);
+            TestDefinition test = result.getTestDefinition();
+            if (test == null || panelTestIds.contains(test.getId())) {
+                continue;
+            }
+            String testName = truncate(test.getTestName(), 18);
             String price = localeFormatService.formatCurrency(
-                    result.getTestDefinition().getPrice() != null
-                            ? result.getTestDefinition().getPrice()
-                            : java.math.BigDecimal.ZERO);
+                    test.getPrice() != null ? test.getPrice() : java.math.BigDecimal.ZERO);
             sb.append(String.format("%-18s %8s\n", testName, price));
         }
         sb.append("--------------------------------\n");
@@ -663,6 +822,35 @@ public class CreateOrderController {
         sb.append("\n\n"); // Extra space for tear-off
 
         return sb.toString();
+    }
+
+    private java.util.Set<Long> getPanelTestIds(LabOrder order) {
+        if (order == null || order.getPanels() == null || order.getPanels().isEmpty()) {
+            return java.util.Set.of();
+        }
+        List<Integer> panelIds = order.getPanels().stream()
+                .map(Panel::getId)
+                .filter(java.util.Objects::nonNull)
+                .collect(Collectors.toList());
+        if (panelIds.isEmpty()) {
+            return java.util.Set.of();
+        }
+        List<Panel> panels = panelRepository.findAllWithTestsById(panelIds);
+        java.util.Set<Long> panelTestIds = new java.util.HashSet<>();
+        for (Panel panel : panels) {
+            if (panel.getPrice() == null) {
+                continue;
+            }
+            if (panel.getTests() == null) {
+                continue;
+            }
+            for (TestDefinition test : panel.getTests()) {
+                if (test.getId() != null) {
+                    panelTestIds.add(test.getId());
+                }
+            }
+        }
+        return panelTestIds;
     }
 
     /**
