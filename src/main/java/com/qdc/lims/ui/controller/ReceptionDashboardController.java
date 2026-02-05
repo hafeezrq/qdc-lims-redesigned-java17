@@ -44,6 +44,7 @@ import javafx.scene.text.Text;
 import javafx.scene.text.TextFlow;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
+
 import org.springframework.context.ApplicationContext;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.stereotype.Component;
@@ -709,10 +710,11 @@ public class ReceptionDashboardController {
         dialog.setTitle("Report Delivery");
         dialog.setHeaderText("Deliver Report for Order #" + order.getId());
         dialog.initModality(Modality.APPLICATION_MODAL);
+        dialog.setResizable(true);
 
         VBox content = new VBox(15);
         content.setPadding(new Insets(20));
-        content.setPrefWidth(500);
+        content.setPrefWidth(480);
 
         Patient patient = order.getPatient();
         String patientName = patient != null && patient.getFullName() != null ? patient.getFullName() : "-";
@@ -749,7 +751,21 @@ public class ReceptionDashboardController {
                         : "-fx-text-fill: #e74c3c; -fx-font-weight: bold;");
         content.getChildren().add(paymentLabel);
 
-        dialog.getDialogPane().setContent(content);
+        // --- KEY CHANGES START HERE ---
+
+        // 2. Wrap the VBox in a ScrollPane
+        ScrollPane scrollPane = new ScrollPane(content);
+        scrollPane.setFitToWidth(true); // Ensures the VBox takes up the full width of the scroll pane
+        scrollPane.setPrefHeight(400); // Set a default height
+        scrollPane.setMaxHeight(600); // Prevent it from growing larger than most screens
+        scrollPane.setPadding(new Insets(5));
+
+        // 3. Set the ScrollPane as the dialog content instead of the VBox
+        dialog.getDialogPane().setContent(scrollPane);
+
+        // --- KEY CHANGES END HERE ---
+
+        // dialog.getDialogPane().setContent(content);
         ButtonType printAndDeliverBtn = new ButtonType("Print & Mark Delivered", ButtonBar.ButtonData.OK_DONE);
         ButtonType markDeliveredBtn = new ButtonType("Mark Delivered Only", ButtonBar.ButtonData.APPLY);
         dialog.getDialogPane().getButtonTypes().addAll(printAndDeliverBtn, markDeliveredBtn, ButtonType.CANCEL);
@@ -835,7 +851,7 @@ public class ReceptionDashboardController {
         double bottomInset = (2.0 / 2.54) * 72.0;
         double contentWidth = Math.min(620, printableWidth * 0.9);
         double availableHeight = printableHeight - safeTopInset - bottomInset;
-        double headerInset = 0.0;
+        // double headerInset = 36.0;
 
         Patient patient = order.getPatient();
         String patientName = patient != null && patient.getFullName() != null ? patient.getFullName() : "-";
@@ -872,7 +888,7 @@ public class ReceptionDashboardController {
         List<StackPane> pages = new ArrayList<>();
         PageContext pageContext = newPage(pages, printableWidth, printableHeight, safeTopInset, bottomInset,
                 contentWidth, availableHeight);
-        attachPatientHeader(pages.get(pages.size() - 1), patientInfo, printableWidth, headerInset);
+        attachPatientHeader(pages.get(pages.size() - 1), patientInfo, printableWidth, pageLayout);
         addNodeToPage(pageContext, createSpacer(6), contentWidth);
 
         Map<String, List<LabResult>> byDepartment = buildResultsByDepartment(order);
@@ -1036,12 +1052,27 @@ public class ReceptionDashboardController {
         fitsCurrentPage(pageContext, contentWidth);
     }
 
-    private void attachPatientHeader(StackPane page, GridPane patientInfo, double printableWidth, double inset) {
-        double headerWidth = printableWidth * 0.48;
+    private void attachPatientHeader(StackPane page, GridPane patientInfo, double printableWidth,
+            PageLayout pageLayout) {
+        // 1. Calculate a proportional width for the box (about 48% of the page)
+        double headerWidth = printableWidth * 0.45;
         patientInfo.setPrefWidth(headerWidth);
         patientInfo.setMaxWidth(headerWidth);
+
+        // 2. Position the box in the Top-Right corner
         StackPane.setAlignment(patientInfo, Pos.TOP_RIGHT);
-        StackPane.setMargin(patientInfo, new Insets(inset, inset, 0, 0));
+
+        // 3. CALCULATION FOR PERFECT 0.5 INCH ALIGNMENT
+        // Desired distance from physical edge = 36 points (0.5 inch)
+        double targetTopPoints = 36.0;
+        double targetRightPoints = 36.0;
+
+        // Subtract what the printer is already enforcing
+        double appliedTopMargin = Math.max(0, targetTopPoints - pageLayout.getTopMargin());
+        double appliedRightMargin = Math.max(0, targetRightPoints - pageLayout.getRightMargin());
+        StackPane.setMargin(patientInfo, new Insets(appliedTopMargin, appliedRightMargin, 0, 0));
+
+        // 4. Add the box to the page StackPane
         page.getChildren().add(patientInfo);
     }
 
