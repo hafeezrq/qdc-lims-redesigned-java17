@@ -407,15 +407,18 @@ public class ResultEntryController {
             }
 
             if ("COMPLETED".equals(currentOrder.getStatus())) {
-                // ... Existing Edit Logic ...
-                String editReason = "";
+                TextInputDialog dialog = new TextInputDialog();
+                dialog.setTitle("Audit Reason Required");
                 if (currentOrder.isReportDelivered()) {
-                    TextInputDialog dialog = new TextInputDialog();
-                    dialog.setTitle("Edit Delivered Report");
-                    dialog.setHeaderText("Reason required:");
-                    editReason = dialog.showAndWait().orElse("").trim();
-                    if (editReason.isEmpty())
-                        return;
+                    dialog.setHeaderText("Report already delivered. Enter correction reason:");
+                } else {
+                    dialog.setHeaderText("Enter reason for editing completed results:");
+                }
+                dialog.setContentText("Reason:");
+                String editReason = dialog.showAndWait().orElse("").trim();
+                if (editReason.isEmpty()) {
+                    showError("Edit reason is required.");
+                    return;
                 }
                 currentOrder.setResults(new ArrayList<>(resultsTable.getItems()));
                 resultService.saveEditedResults(currentOrder, editReason);

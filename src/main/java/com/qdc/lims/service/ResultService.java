@@ -3,9 +3,11 @@ package com.qdc.lims.service;
 import com.qdc.lims.dto.ResultEntryRequest;
 import com.qdc.lims.entity.LabOrder;
 import com.qdc.lims.entity.LabResult;
+import com.qdc.lims.entity.LabResultEditAudit;
 import com.qdc.lims.entity.ReferenceRange;
 import com.qdc.lims.entity.TestDefinition;
 import com.qdc.lims.repository.LabOrderRepository;
+import com.qdc.lims.repository.LabResultEditAuditRepository;
 import com.qdc.lims.repository.LabResultRepository;
 import com.qdc.lims.repository.ReferenceRangeRepository;
 
@@ -15,6 +17,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.Objects;
 
 /**
  * Service for handling lab result entry, validation, and saving logic.
@@ -23,6 +26,7 @@ import java.time.LocalDateTime;
 public class ResultService {
 
     private final LabResultRepository repository;
+    private final LabResultEditAuditRepository labResultEditAuditRepository;
     private final CurrentUserProvider currentUserProvider;
     private final ReferenceRangeRepository referenceRangeRepository;
 
@@ -35,9 +39,11 @@ public class ResultService {
      * @param repository repository for lab results
      */
     public ResultService(LabResultRepository repository,
+            LabResultEditAuditRepository labResultEditAuditRepository,
             CurrentUserProvider currentUserProvider,
             ReferenceRangeRepository referenceRangeRepository) {
         this.repository = repository;
+        this.labResultEditAuditRepository = labResultEditAuditRepository;
         this.currentUserProvider = currentUserProvider;
         this.referenceRangeRepository = referenceRangeRepository;
     }
@@ -182,7 +188,7 @@ public class ResultService {
      * Saves edits to results for a completed order and records audit metadata.
      *
      * @param orderForm   the LabOrder containing edited results
-     * @param editReason  reason for editing (required if already delivered)
+     * @param editReason  reason for editing (required for completed-result edits)
      */
     @Transactional
     public void saveEditedResults(LabOrder orderForm, String editReason) {
@@ -193,22 +199,27 @@ public class ResultService {
             throw new RuntimeException("Only completed orders can be edited here.");
         }
 
-        if (labOrder.isReportDelivered()) {
-            if (editReason == null || editReason.trim().isEmpty()) {
-                throw new RuntimeException("Edit reason is required after report delivery.");
-            }
+        String normalizedReason = editReason != null ? editReason.trim() : "";
+        if (normalizedReason.isEmpty()) {
+            throw new RuntimeException("Edit reason is required for completed-result corrections.");
         }
 
         String currentUser = currentUserProvider.getUsername();
+        LocalDateTime editedAt = LocalDateTime.now();
+        int changeCount = 0;
 
         for (LabResult resultFromForm : orderForm.getResults()) {
             LabResult dbResult = repository.findById(resultFromForm.getId()).orElseThrow();
-            String val = resultFromForm.getResultValue();
+            String val = resultFromForm.getResultValue() != null ? resultFromForm.getResultValue().trim() : "";
 
-            if (val != null && !val.trim().isEmpty()) {
+            if (!val.isEmpty()) {
+                String oldValue = dbResult.getResultValue();
+                boolean oldAbnormal = dbResult.isAbnormal();
+                String oldRemarks = dbResult.getRemarks();
+
                 dbResult.setResultValue(val);
                 dbResult.setPerformedBy(currentUser);
-                dbResult.setPerformedAt(LocalDateTime.now());
+                dbResult.setPerformedAt(editedAt);
 
                 TestDefinition test = dbResult.getTestDefinition();
                 try {
@@ -237,20 +248,52 @@ public class ResultService {
                     dbResult.setRemarks("");
                 }
 
+                boolean valueChanged = !Objects.equals(normalize(oldValue), normalize(dbResult.getResultValue()));
+                boolean abnormalChanged = oldAbnormal != dbResult.isAbnormal();
+                boolean remarksChanged = !Objects.equals(normalize(oldRemarks), normalize(dbResult.getRemarks()));
+                if (!(valueChanged || abnormalChanged || remarksChanged)) {
+                    continue;
+                }
+
                 repository.save(dbResult);
+
+                LabResultEditAudit audit = new LabResultEditAudit();
+                audit.setLabOrder(labOrder);
+                audit.setLabResult(dbResult);
+                audit.setTestName(test != null ? test.getTestName() : null);
+                audit.setPreviousValue(oldValue);
+                audit.setNewValue(dbResult.getResultValue());
+                audit.setPreviousRemarks(oldRemarks);
+                audit.setNewRemarks(dbResult.getRemarks());
+                audit.setPreviousAbnormal(oldAbnormal);
+                audit.setNewAbnormal(dbResult.isAbnormal());
+                audit.setEditedBy(currentUser);
+                audit.setEditedAt(editedAt);
+                audit.setReason(normalizedReason);
+                audit.setReportDeliveredAtEdit(labOrder.isReportDelivered());
+                labResultEditAuditRepository.save(audit);
+                changeCount++;
             }
         }
 
+        if (changeCount == 0) {
+            throw new RuntimeException("No result changes detected to save.");
+        }
+
         labOrder.setResultsEdited(true);
-        labOrder.setResultsEditedAt(LocalDateTime.now());
+        labOrder.setResultsEditedAt(editedAt);
         labOrder.setResultsEditedBy(currentUser);
-        labOrder.setResultsEditReason(editReason);
+        labOrder.setResultsEditReason(normalizedReason);
 
         if (labOrder.isReportDelivered()) {
             labOrder.setReprintRequired(true);
         }
 
         orderRepo.save(labOrder);
+    }
+
+    private String normalize(String value) {
+        return value == null ? "" : value.trim();
     }
 
     private ReferenceRange findMatchingRange(TestDefinition test, com.qdc.lims.entity.Patient patient) {

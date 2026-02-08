@@ -118,6 +118,16 @@ public class AdminDashboardController {
                             // 2. Pass the stage to the setup method
                             dashboardSwitchService.setupDashboardSwitcher(dashboardSwitcher, current, stage);
                             brandingService.tagStage(stage, DashboardType.ADMIN.getWindowTitle());
+                            User user = SessionManager.getUser(stage);
+                            if (user != null) {
+                                String fullName = user.getFullName();
+                                if (welcomeLabel != null) {
+                                    welcomeLabel.setText(fullName);
+                                }
+                                if (userLabel != null) {
+                                    userLabel.setText(fullName);
+                                }
+                            }
                         }
                     });
                 }
@@ -125,24 +135,11 @@ public class AdminDashboardController {
         }
         // --- FIX ENDS HERE ---
 
-        // Note: We cannot rely on SessionManager.getCurrentUser() here safely in all
-        // cases,
-        // but for text labels in initialize, it's usually acceptable.
-        // ideally, you would update these labels inside the listener above using
-        // SessionManager.getUser(stage)
-        if (SessionManager.getCurrentUser() != null) {
-            String fullName = SessionManager.getCurrentUser().getFullName();
-            welcomeLabel.setText("Welcome: " + fullName);
-
-            if (userLabel != null) {
-                userLabel.setText(fullName);
-            }
-
-            if (switchRoleButton != null) {
-                switchRoleButton.setVisible(false);
-            }
-        } else {
-            welcomeLabel.setText("Welcome: Admin");
+        if (switchRoleButton != null) {
+            switchRoleButton.setVisible(false);
+        }
+        if (welcomeLabel != null) {
+            welcomeLabel.setText("Admin");
         }
 
         if (statusLabel != null) {
@@ -398,6 +395,11 @@ public class AdminDashboardController {
     @FXML
     private void handleSystemConfig() {
         openAdminWindow("/fxml/system_settings.fxml", "System Configuration");
+    }
+
+    @FXML
+    private void handleResultEditAudit() {
+        openAdminWindow("/fxml/result_edit_audit.fxml", "Result Edit Audit", 1220, 720);
     }
 
     @FXML

@@ -63,6 +63,7 @@
                     <MenuItem text="Check for Updates" onAction="#handleCheckForUpdates"/>
                     <MenuItem text="Backup &amp; Snapshots" onAction="#handleBackupSettings"/>
                     <MenuItem text="System Configuration" onAction="#handleSystemConfig"/>
+                    <MenuItem text="Result Edit Audit" onAction="#handleResultEditAudit"/>
                 </Menu>
             </MenuBar>
         </VBox>

@@ -415,7 +415,23 @@ public class ReceptionDashboardController {
                     return;
                 }
                 LabOrder order = getTableView().getItems().get(getIndex());
-                setGraphic(order != null && order.isReprintRequired() ? reprintBtn : null);
+                if (order == null) {
+                    setGraphic(null);
+                    return;
+                }
+
+                if (order.isReprintRequired()) {
+                    reprintBtn.setText("Reprint");
+                    reprintBtn.setTooltip(new Tooltip("Reprint required due to edited delivered report."));
+                    reprintBtn.setStyle(
+                            "-fx-background-color: #e67e22; -fx-text-fill: white; -fx-font-size: 11; -fx-padding: 3 10;");
+                } else {
+                    reprintBtn.setText("Reprint");
+                    reprintBtn.setTooltip(new Tooltip("Reprint report"));
+                    reprintBtn.setStyle(
+                            "-fx-background-color: #3498db; -fx-text-fill: white; -fx-font-size: 11; -fx-padding: 3 10;");
+                }
+                setGraphic(reprintBtn);
             }
         });
 

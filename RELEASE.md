@@ -39,13 +39,12 @@ If you must rebuild the same tag (not recommended), you can use the workflow man
 - **Old tag**: workflow builds the exact commit the tag points to.
 - **Wrong jar type**: jpackage must use the Spring Boot boot jar with `JarLauncher`.
 - **Missing JDK modules**: the runtime image must include all required modules.
-- **No logs**: enable console output (`--win-console`) when debugging installer failures.
+- **Console window in production**: release builds are GUI-only by default (no `--win-console`).
 
 ## Troubleshooting Quick Checks
-- Run the app from Command Prompt to capture output:
-  - `cd "C:\Program Files\LIMS"`
-  - `LIMS.exe --debug > "%TEMP%\lims-debug.txt" 2>&1`
-- Check `%TEMP%\lims-debug.txt` for errors.
+- To enable a console launcher for debugging, run the GitHub Action manually and set `debug_console=true`.
+- This uses Maven profile `windows-debug-console`, which appends `--win-console` only for that build.
+- For normal releases, keep `debug_console=false` (default) for a native GUI launcher.
 
 ## Decision: Keep in Repo
 This file is intended to stay in the repo so future releases are consistent.

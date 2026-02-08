@@ -273,28 +273,43 @@
 						<module>jdk.jfr</module>
 						<module>jdk.unsupported</module>
 					</addModules>
-					<options>
-						<option>--icon</option>
-						<option>${project.basedir}/src/main/resources/icons/microscope.ico</option>
-						<option>--strip-debug</option>
-						<option>--no-man-pages</option>
-						<option>--no-header-files</option>
-						<option>--win-dir-chooser</option>
-						<option>--win-menu</option>
-						<option>--win-shortcut</option>
-						<option>--win-console</option>
-					</options>
-				</configuration>
-			</plugin>
-		</plugins>
-	</build>
+						<options>
+							<option>--icon</option>
+							<option>${project.basedir}/src/main/resources/icons/microscope.ico</option>
+							<option>--strip-debug</option>
+							<option>--no-man-pages</option>
+							<option>--no-header-files</option>
+							<option>--win-dir-chooser</option>
+							<option>--win-menu</option>
+							<option>--win-shortcut</option>
+						</options>
+					</configuration>
+				</plugin>
+			</plugins>
+		</build>
 
 
-	<profiles>
-		<profile>
-			<id>docs</id>
-			<build>
-				<plugins>
+		<profiles>
+			<profile>
+				<id>windows-debug-console</id>
+				<build>
+					<plugins>
+						<plugin>
+							<groupId>org.panteleyev</groupId>
+							<artifactId>jpackage-maven-plugin</artifactId>
+							<configuration>
+								<options combine.children="append">
+									<option>--win-console</option>
+								</options>
+							</configuration>
+						</plugin>
+					</plugins>
+				</build>
+			</profile>
+			<profile>
+				<id>docs</id>
+				<build>
+					<plugins>
 					<plugin>
 						<groupId>org.apache.maven.plugins</groupId>
 						<artifactId>maven-javadoc-plugin</artifactId>

@@ -19,6 +19,8 @@ import javafx.geometry.Insets;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
@@ -97,6 +99,10 @@ public class MainWindowController {
     private Label welcomeSubtitleLabel;
     @FXML
     private Label footerBrandLabel;
+    @FXML
+    private ImageView welcomeLogoImage;
+    @FXML
+    private Label welcomeLogoEmoji;
 
     // Track which tab belongs to which session
     private final Map<Tab, SessionInfo> tabSessions = new HashMap<>();
@@ -196,9 +202,45 @@ public class MainWindowController {
         // Initially hide tabs and show welcome
         updateUI();
         updateButtonStates();
+        setupWelcomeLogo();
         applyBrandingToLabels();
         setupStageBrandingAndFirstRun();
         setupSessionTimeoutHandlers();
+    }
+
+    private void setupWelcomeLogo() {
+        if (welcomeLogoImage == null) {
+            return;
+        }
+        try {
+            var logoUrl = MainWindowController.class.getResource("/icons/microscope.png");
+            if (logoUrl == null) {
+                showWelcomeLogoFallback();
+                return;
+            }
+            Image logo = new Image(logoUrl.toExternalForm(), true);
+            if (logo.isError()) {
+                showWelcomeLogoFallback();
+                return;
+            }
+            welcomeLogoImage.setImage(logo);
+            if (welcomeLogoEmoji != null) {
+                welcomeLogoEmoji.setVisible(false);
+                welcomeLogoEmoji.setManaged(false);
+            }
+        } catch (Exception ignored) {
+            showWelcomeLogoFallback();
+        }
+    }
+
+    private void showWelcomeLogoFallback() {
+        if (welcomeLogoImage != null) {
+            welcomeLogoImage.setImage(null);
+        }
+        if (welcomeLogoEmoji != null) {
+            welcomeLogoEmoji.setVisible(true);
+            welcomeLogoEmoji.setManaged(true);
+        }
     }
 
     private void applyBrandingToLabels() {
@@ -1087,6 +1129,12 @@ public class MainWindowController {
      */
     private void createSessionTab(User user, DashboardType dashboardType) {
         try {
+            // Set session context before loading FXML so controller initialize() reads the
+            // correct user.
+            Stage stage = (Stage) mainContainer.getScene().getWindow();
+            SessionManager.login(stage, user);
+            SessionManager.setActiveStage(stage);
+
             // Load the dashboard content
             FXMLLoader loader = new FXMLLoader(getClass().getResource(dashboardType.getFxmlPath()));
             loader.setControllerFactory(applicationContext::getBean);
@@ -1141,11 +1189,6 @@ public class MainWindowController {
             // Add tab and select it
             sessionTabs.getTabs().add(tab);
             sessionTabs.getSelectionModel().select(tab);
-
-            // Update SessionManager for backward compatibility with dashboard controllers
-            Stage stage = (Stage) mainContainer.getScene().getWindow();
-            SessionManager.login(stage, user);
-            SessionManager.setActiveStage(stage);
 
             setStatus("Logged in: " + user.getUsername() + " ("
                     + dashboardType.getDisplayName().replace(" Dashboard", "") + ")");

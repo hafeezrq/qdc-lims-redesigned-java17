@@ -2,6 +2,7 @@
 
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.control.*?>
+<?import javafx.scene.image.ImageView?>
 <?import javafx.scene.layout.*?>
 <?import javafx.scene.text.Font?>
 
@@ -55,7 +56,10 @@
             </padding>
             
             <!-- Logo -->
-            <Label text="🧪" style="-fx-font-size: 72; -fx-cursor: default;"/>
+            <StackPane>
+                <ImageView fx:id="welcomeLogoImage" fitWidth="96" fitHeight="96" preserveRatio="true" smooth="true" pickOnBounds="true"/>
+                <Label fx:id="welcomeLogoEmoji" text="🧪" visible="false" managed="false" style="-fx-font-size: 72; -fx-cursor: default;"/>
+            </StackPane>
             
             <!-- Title -->
             <VBox alignment="CENTER" spacing="8" style="-fx-cursor: default;">

@@ -10,6 +10,11 @@ on:
         description: "Release tag to build (e.g., LIMS_v1_0_0)"
         required: true
         type: string
+      debug_console:
+        description: "Build Windows launcher with console window (debug only)"
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: write
@@ -47,7 +52,9 @@ jobs:
       - name: Build and package (jpackage)
         shell: cmd
         run: |
-          call mvnw.cmd -B -DskipTests "-Djavafx.jmods.path=%JAVA_FX_JMODS%" package jpackage:jpackage
+          set "EXTRA_PROFILE="
+          if "${{ inputs.debug_console }}"=="true" set "EXTRA_PROFILE=-Pwindows-debug-console"
+          call mvnw.cmd -B -DskipTests "-Djavafx.jmods.path=%JAVA_FX_JMODS%" %EXTRA_PROFILE% package jpackage:jpackage
 
       - name: Verify boot jar and installer
         shell: pwsh

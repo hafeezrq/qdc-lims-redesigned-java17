@@ -189,7 +189,7 @@ public class LabDashboardController {
         if (SessionManager.getCurrentUser() != null) {
             String fullName = SessionManager.getCurrentUser().getFullName();
             if (welcomeLabel != null) {
-                welcomeLabel.setText("Welcome: " + fullName);
+                welcomeLabel.setText(fullName);
             }
             if (userLabel != null) {
                 userLabel.setText(fullName);
