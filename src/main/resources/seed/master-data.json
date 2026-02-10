@@ -419,6 +419,39 @@
       "active": true
     },
     {
+      "name": "MPV (Mean Platelet Volume)",
+      "shortCode": "MPV",
+      "department": "Hematology",
+      "category": "Platelets",
+      "unit": "fL",
+      "price": 120,
+      "minRange": null,
+      "maxRange": null,
+      "active": true
+    },
+    {
+      "name": "PDW",
+      "shortCode": "PDW",
+      "department": "Hematology",
+      "category": "Platelets",
+      "unit": "%",
+      "price": 120,
+      "minRange": null,
+      "maxRange": null,
+      "active": true
+    },
+    {
+      "name": "Plateletcrit (PCT)",
+      "shortCode": "PCT",
+      "department": "Hematology",
+      "category": "Platelets",
+      "unit": "%",
+      "price": 120,
+      "minRange": null,
+      "maxRange": null,
+      "active": true
+    },
+    {
       "name": "ESR (Erythrocyte Sedimentation Rate)",
       "shortCode": "ESR",
       "department": "Hematology",
@@ -1081,6 +1114,31 @@
   ],
   "panels": [
     {
+      "name": "CBC / Blood CP",
+      "department": "Hematology",
+      "price": 650,
+      "active": true,
+      "tests": [
+        "HB",
+        "RBC",
+        "HCT",
+        "MCV",
+        "MCH",
+        "MCHC",
+        "RDW",
+        "WBC",
+        "NEUTP",
+        "LYMPHP",
+        "MONOP",
+        "EOSP",
+        "BASOP",
+        "PLT",
+        "MPV",
+        "PDW",
+        "PCT"
+      ]
+    },
+    {
       "name": "Urine Routine",
       "department": "Urine",
       "price": 200,
@@ -1118,128 +1176,136 @@
       "gender": "Female",
       "minAge": 18,
       "maxAge": 120,
-      "minVal": 3.61,
-      "maxVal": 5.2
+      "minVal": 4.1,
+      "maxVal": 5.1
     },
     {
       "testShortCode": "RBC",
       "gender": "Male",
       "minAge": 18,
       "maxAge": 120,
-      "minVal": 4.25,
-      "maxVal": 6.02
+      "minVal": 4.5,
+      "maxVal": 5.9
     },
     {
       "testShortCode": "HB",
       "gender": "Female",
       "minAge": 18,
       "maxAge": 120,
-      "minVal": 110,
-      "maxVal": 145
+      "minVal": 120,
+      "maxVal": 150
     },
     {
       "testShortCode": "HB",
       "gender": "Male",
       "minAge": 18,
       "maxAge": 120,
-      "minVal": 123,
-      "maxVal": 166
+      "minVal": 130,
+      "maxVal": 170
     },
     {
       "testShortCode": "HCT",
       "gender": "Female",
       "minAge": 18,
       "maxAge": 120,
-      "minVal": 0.345,
-      "maxVal": 0.454
+      "minVal": 0.36,
+      "maxVal": 0.48
     },
     {
       "testShortCode": "HCT",
       "gender": "Male",
       "minAge": 18,
       "maxAge": 120,
-      "minVal": 0.384,
-      "maxVal": 0.507
+      "minVal": 0.40,
+      "maxVal": 0.52
     },
     {
       "testShortCode": "MCV",
       "gender": "Female",
       "minAge": 18,
       "maxAge": 120,
-      "minVal": 78.1,
-      "maxVal": 95.3
+      "minVal": 80.0,
+      "maxVal": 100.0
     },
     {
       "testShortCode": "MCV",
       "gender": "Male",
       "minAge": 18,
       "maxAge": 120,
-      "minVal": 78.7,
-      "maxVal": 96.3
+      "minVal": 80.0,
+      "maxVal": 100.0
     },
     {
       "testShortCode": "MCH",
       "gender": "Female",
       "minAge": 18,
       "maxAge": 120,
-      "minVal": 25.3,
-      "maxVal": 31.7
+      "minVal": 27.0,
+      "maxVal": 33.0
     },
     {
       "testShortCode": "MCH",
       "gender": "Male",
       "minAge": 18,
       "maxAge": 120,
-      "minVal": 25.1,
-      "maxVal": 31.6
+      "minVal": 27.0,
+      "maxVal": 33.0
     },
     {
       "testShortCode": "MCHC",
       "gender": "Female",
       "minAge": 18,
       "maxAge": 120,
-      "minVal": 303,
-      "maxVal": 344
+      "minVal": 320,
+      "maxVal": 360
     },
     {
       "testShortCode": "MCHC",
       "gender": "Male",
       "minAge": 18,
       "maxAge": 120,
-      "minVal": 300,
-      "maxVal": 355
+      "minVal": 320,
+      "maxVal": 360
     },
     {
       "testShortCode": "RDW",
       "gender": "Female",
       "minAge": 18,
       "maxAge": 120,
-      "minVal": 12.1,
-      "maxVal": 16.9
+      "minVal": 11.5,
+      "maxVal": 14.5
     },
     {
       "testShortCode": "RDW",
       "gender": "Male",
       "minAge": 18,
       "maxAge": 120,
-      "minVal": 12.0,
-      "maxVal": 16.0
+      "minVal": 11.5,
+      "maxVal": 14.5
+    },
+    {
+      "testShortCode": "RDW",
+      "gender": "Both",
+      "minAge": 1,
+      "maxAge": 12,
+      "minVal": 11.5,
+      "maxVal": 15.0
     },
     {
       "testShortCode": "WBC",
       "gender": "Female",
       "minAge": 18,
       "maxAge": 120,
-      "minVal": 4.6,
-      "maxVal": 10.8
+      "minVal": 4.0,
+      "maxVal": 11.0
     },
     {
       "testShortCode": "WBC",
       "gender": "Male",
       "minAge": 18,
       "maxAge": 120,
-      "minVal": 4.88,
-      "maxVal": 11.38
+      "minVal": 4.0,
+      "maxVal": 11.0
     },
     {
       "testShortCode": "NEUT",
@@ -1286,39 +1352,79 @@
       "gender": "Both",
       "minAge": 18,
       "maxAge": 120,
-      "minVal": 34.9,
-      "maxVal": 76.2
+      "minVal": 40.0,
+      "maxVal": 70.0
+    },
+    {
+      "testShortCode": "NEUTP",
+      "gender": "Both",
+      "minAge": 1,
+      "maxAge": 12,
+      "minVal": 30.0,
+      "maxVal": 60.0
     },
     {
       "testShortCode": "LYMPHP",
       "gender": "Both",
       "minAge": 18,
       "maxAge": 120,
-      "minVal": 17.5,
-      "maxVal": 45.0
+      "minVal": 20.0,
+      "maxVal": 40.0
+    },
+    {
+      "testShortCode": "LYMPHP",
+      "gender": "Both",
+      "minAge": 1,
+      "maxAge": 12,
+      "minVal": 30.0,
+      "maxVal": 60.0
     },
     {
       "testShortCode": "MONOP",
       "gender": "Both",
       "minAge": 18,
       "maxAge": 120,
-      "minVal": 3.9,
-      "maxVal": 10.0
+      "minVal": 2.0,
+      "maxVal": 8.0
+    },
+    {
+      "testShortCode": "MONOP",
+      "gender": "Both",
+      "minAge": 1,
+      "maxAge": 12,
+      "minVal": 2.0,
+      "maxVal": 8.0
     },
     {
       "testShortCode": "EOSP",
       "gender": "Both",
       "minAge": 18,
       "maxAge": 120,
-      "minVal": 0.3,
-      "maxVal": 7.4
+      "minVal": 1.0,
+      "maxVal": 6.0
+    },
+    {
+      "testShortCode": "EOSP",
+      "gender": "Both",
+      "minAge": 1,
+      "maxAge": 12,
+      "minVal": 1.0,
+      "maxVal": 6.0
     },
     {
       "testShortCode": "BASOP",
       "gender": "Both",
       "minAge": 18,
       "maxAge": 120,
-      "minVal": 0.1,
+      "minVal": 0.0,
+      "maxVal": 1.0
+    },
+    {
+      "testShortCode": "BASOP",
+      "gender": "Both",
+      "minAge": 1,
+      "maxAge": 12,
+      "minVal": 0.0,
       "maxVal": 1.0
     },
     {
@@ -1326,8 +1432,32 @@
       "gender": "Both",
       "minAge": 18,
       "maxAge": 120,
-      "minVal": 154,
-      "maxVal": 433
+      "minVal": 150,
+      "maxVal": 450
+    },
+    {
+      "testShortCode": "MPV",
+      "gender": "Both",
+      "minAge": 1,
+      "maxAge": 120,
+      "minVal": 7.5,
+      "maxVal": 11.5
+    },
+    {
+      "testShortCode": "PDW",
+      "gender": "Both",
+      "minAge": 1,
+      "maxAge": 120,
+      "minVal": 9.0,
+      "maxVal": 17.0
+    },
+    {
+      "testShortCode": "PCT",
+      "gender": "Both",
+      "minAge": 1,
+      "maxAge": 120,
+      "minVal": 0.2,
+      "maxVal": 0.4
     },
     {
       "testShortCode": "ESR",
@@ -1342,40 +1472,40 @@
       "gender": "Both",
       "minAge": 1,
       "maxAge": 1,
-      "minVal": 6,
-      "maxVal": 16
+      "minVal": 5.0,
+      "maxVal": 14.0
     },
     {
       "testShortCode": "RBC",
       "gender": "Both",
       "minAge": 1,
       "maxAge": 1,
-      "minVal": 3.9,
-      "maxVal": 5.1
+      "minVal": 4.0,
+      "maxVal": 5.2
     },
     {
       "testShortCode": "HB",
       "gender": "Both",
       "minAge": 1,
       "maxAge": 1,
-      "minVal": 111,
-      "maxVal": 141
+      "minVal": 110,
+      "maxVal": 140
     },
     {
       "testShortCode": "HCT",
       "gender": "Both",
       "minAge": 1,
       "maxAge": 1,
-      "minVal": 0.3,
-      "maxVal": 0.38
+      "minVal": 0.33,
+      "maxVal": 0.43
     },
     {
       "testShortCode": "MCV",
       "gender": "Both",
       "minAge": 1,
       "maxAge": 1,
-      "minVal": 72,
-      "maxVal": 84
+      "minVal": 77,
+      "maxVal": 95
     },
     {
       "testShortCode": "MCH",
@@ -1383,7 +1513,7 @@
       "minAge": 1,
       "maxAge": 1,
       "minVal": 25,
-      "maxVal": 29
+      "maxVal": 31
     },
     {
       "testShortCode": "MCHC",
@@ -1398,8 +1528,8 @@
       "gender": "Both",
       "minAge": 1,
       "maxAge": 1,
-      "minVal": 200,
-      "maxVal": 550
+      "minVal": 150,
+      "maxVal": 450
     },
     {
       "testShortCode": "NEUT",
@@ -1439,7 +1569,7 @@
       "minAge": 2,
       "maxAge": 6,
       "minVal": 5,
-      "maxVal": 15
+      "maxVal": 14
     },
     {
       "testShortCode": "RBC",
@@ -1462,40 +1592,40 @@
       "gender": "Both",
       "minAge": 2,
       "maxAge": 6,
-      "minVal": 0.34,
-      "maxVal": 0.4
+      "minVal": 0.33,
+      "maxVal": 0.43
     },
     {
       "testShortCode": "MCV",
       "gender": "Both",
       "minAge": 2,
       "maxAge": 6,
-      "minVal": 75,
-      "maxVal": 87
+      "minVal": 77,
+      "maxVal": 95
     },
     {
       "testShortCode": "MCH",
       "gender": "Both",
       "minAge": 2,
       "maxAge": 6,
-      "minVal": 24,
-      "maxVal": 30
+      "minVal": 25,
+      "maxVal": 31
     },
     {
       "testShortCode": "MCHC",
       "gender": "Both",
       "minAge": 2,
       "maxAge": 6,
-      "minVal": 310,
-      "maxVal": 370
+      "minVal": 320,
+      "maxVal": 360
     },
     {
       "testShortCode": "PLT",
       "gender": "Both",
       "minAge": 2,
       "maxAge": 6,
-      "minVal": 200,
-      "maxVal": 490
+      "minVal": 150,
+      "maxVal": 450
     },
     {
       "testShortCode": "NEUT",
@@ -1535,7 +1665,7 @@
       "minAge": 7,
       "maxAge": 12,
       "minVal": 5,
-      "maxVal": 13
+      "maxVal": 14
     },
     {
       "testShortCode": "RBC",
@@ -1550,16 +1680,16 @@
       "gender": "Both",
       "minAge": 7,
       "maxAge": 12,
-      "minVal": 115,
-      "maxVal": 155
+      "minVal": 110,
+      "maxVal": 140
     },
     {
       "testShortCode": "HCT",
       "gender": "Both",
       "minAge": 7,
       "maxAge": 12,
-      "minVal": 0.35,
-      "maxVal": 0.45
+      "minVal": 0.33,
+      "maxVal": 0.43
     },
     {
       "testShortCode": "MCV",
@@ -1575,22 +1705,22 @@
       "minAge": 7,
       "maxAge": 12,
       "minVal": 25,
-      "maxVal": 33
+      "maxVal": 31
     },
     {
       "testShortCode": "MCHC",
       "gender": "Both",
       "minAge": 7,
       "maxAge": 12,
-      "minVal": 310,
-      "maxVal": 370
+      "minVal": 320,
+      "maxVal": 360
     },
     {
       "testShortCode": "PLT",
       "gender": "Both",
       "minAge": 7,
       "maxAge": 12,
-      "minVal": 170,
+      "minVal": 150,
       "maxVal": 450
     },
     {

@@ -155,6 +155,9 @@ public class ReportExportService {
 
     private void addFooter(Document doc) throws DocumentException {
         String footerText = brandingService.getReportFooterText();
+        if (footerText.isBlank()) {
+            return;
+        }
         Paragraph footer = new Paragraph(footerText, FontFactory.getFont(FontFactory.HELVETICA_OBLIQUE, 8));
         footer.setAlignment(Element.ALIGN_CENTER);
         footer.setSpacingBefore(20);

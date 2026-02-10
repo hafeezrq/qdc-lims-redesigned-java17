@@ -18,6 +18,9 @@ import java.util.Optional;
 @Service
 public class ConfigService {
 
+    private static final String LEGACY_REPORT_FOOTER_DEFAULT =
+            "This is a computer generated report and does not require a signature.";
+
     @Autowired
     private SystemConfigurationRepository configRepository;
 
@@ -56,12 +59,21 @@ public class ConfigService {
         createIfNotExists("REQUIRE_PASSWORD_RECEPTION_LAB", "true", "Security");
 
         createIfNotExists("REPORT_HEADER_TEXT", "", "Reports");
-        createIfNotExists("REPORT_FOOTER_TEXT",
-                "This is a computer generated report and does not require a signature.",
-                "Reports");
+        createIfNotExists("REPORT_FOOTER_TEXT", "", "Reports");
         createIfNotExists("REPORT_LOGO_PATH", "", "Reports");
+        clearLegacyReportFooterDefault();
 
         refreshCache();
+    }
+
+    private void clearLegacyReportFooterDefault() {
+        configRepository.findByKey("REPORT_FOOTER_TEXT").ifPresent(config -> {
+            String value = config.getValue() == null ? "" : config.getValue().trim();
+            if (LEGACY_REPORT_FOOTER_DEFAULT.equals(value)) {
+                config.setValue("");
+                configRepository.save(config);
+            }
+        });
     }
 
     private void createIfNotExists(String key, String defaultValue, String category) {

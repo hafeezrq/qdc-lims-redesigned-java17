@@ -101,12 +101,15 @@ public class ReportService {
                 document.add(new Paragraph(" "));
             }
 
-            // 4. Footer
-            document.add(new Paragraph("\n\n"));
-            Paragraph footer = new Paragraph(brandingService.getReportFooterText(),
-                    FontFactory.getFont(FontFactory.HELVETICA_OBLIQUE, 10));
-            footer.setAlignment(Element.ALIGN_CENTER);
-            document.add(footer);
+            // 4. Footer (optional)
+            String footerText = brandingService.getReportFooterText();
+            if (!footerText.isBlank()) {
+                document.add(new Paragraph("\n\n"));
+                Paragraph footer = new Paragraph(footerText,
+                        FontFactory.getFont(FontFactory.HELVETICA_OBLIQUE, 10));
+                footer.setAlignment(Element.ALIGN_CENTER);
+                document.add(footer);
+            }
 
             document.close();
             return out.toByteArray();

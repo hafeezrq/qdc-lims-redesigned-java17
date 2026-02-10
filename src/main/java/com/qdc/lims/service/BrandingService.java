@@ -168,11 +168,7 @@ public class BrandingService {
      * @return a branded report footer string
      */
     public String getReportFooterText() {
-        String configured = configService.getTrimmed("REPORT_FOOTER_TEXT", "");
-        if (!configured.isBlank()) {
-            return configured;
-        }
-        return "System Generated Report";
+        return configService.getTrimmed("REPORT_FOOTER_TEXT", "");
     }
 
     /**
