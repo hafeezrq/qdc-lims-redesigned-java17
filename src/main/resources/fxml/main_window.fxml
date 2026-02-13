@@ -22,8 +22,8 @@
                 </Label>
                 <Region HBox.hgrow="ALWAYS" style="-fx-cursor: default;"/>
                 
-                <!-- Quick Login Buttons in Header -->
-                <Label text="New Session:" style="-fx-text-fill: rgba(255,255,255,0.8); -fx-cursor: default;">
+                <!-- Active Session Role + Quick Login Buttons -->
+                <Label fx:id="activeRoleLabel" text="Active: None" style="-fx-text-fill: rgba(255,255,255,0.8); -fx-cursor: default;">
                     <font><Font size="12"/></font>
                 </Label>
                 <Button fx:id="receptionLoginBtn" text="🏥 Reception" onAction="#openReceptionLogin"

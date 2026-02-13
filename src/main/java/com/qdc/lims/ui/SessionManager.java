@@ -24,7 +24,7 @@ public class SessionManager {
 
     // Track the currently active window for backward compatibility
     private static Stage activeStage;
-
+    private static volatile boolean sessionTimeoutEnabled;
     private static volatile Duration sessionTimeout = Duration.ofMinutes(30);
 
     /**
@@ -83,7 +83,7 @@ public class SessionManager {
         }
 
         private boolean isExpired() {
-            if (sessionTimeout == null || sessionTimeout.isZero() || sessionTimeout.isNegative()) {
+            if (!sessionTimeoutEnabled || sessionTimeout == null || sessionTimeout.isZero() || sessionTimeout.isNegative()) {
                 return false;
             }
             if (lastAccess == null) {
@@ -240,7 +240,9 @@ public class SessionManager {
      * Get count of active sessions (logged in windows).
      */
     public static int getActiveSessionCount() {
-        windowSessions.entrySet().removeIf(entry -> entry.getValue().isExpired());
+        if (sessionTimeoutEnabled) {
+            windowSessions.entrySet().removeIf(entry -> entry.getValue().isExpired());
+        }
         return (int) windowSessions.values().stream()
                 .filter(s -> s.getUser() != null)
                 .count();
@@ -262,6 +264,14 @@ public class SessionManager {
             return;
         }
         sessionTimeout = Duration.ofMinutes(minutes);
+    }
+
+    public static void setSessionTimeoutEnabled(boolean enabled) {
+        sessionTimeoutEnabled = enabled;
+    }
+
+    public static boolean isSessionTimeoutEnabled() {
+        return sessionTimeoutEnabled;
     }
 
     private static UserSession getActiveSession(Stage stage) {

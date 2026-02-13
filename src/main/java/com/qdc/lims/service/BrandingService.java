@@ -19,6 +19,7 @@ public class BrandingService {
 
     private static final String STAGE_CONTEXT_KEY = "branding.context";
     private static final String APP_ICON_PATH = "/icons/microscope.png";
+    private static final String DEFAULT_APP_NAME = "Clinical Lab";
 
     private final ConfigService configService;
     private Image appIcon;
@@ -36,8 +37,27 @@ public class BrandingService {
      * @return the application name (for example, "LIMS")
      */
     public String getApplicationName() {
-        String appName = configService.getTrimmed("APP_NAME", "LIMS");
-        return appName.isBlank() ? "LIMS" : appName;
+        String appName = configService.getTrimmed("APP_NAME", DEFAULT_APP_NAME);
+        if (appName.isBlank()) {
+            return DEFAULT_APP_NAME;
+        }
+        if ("Test Labs".equalsIgnoreCase(appName.trim())) {
+            return DEFAULT_APP_NAME;
+        }
+        return appName;
+    }
+
+    /**
+     * Applies the main shell title and icon without prefixing.
+     *
+     * @param stage stage to brand
+     */
+    public void applyMainStageBranding(Stage stage) {
+        if (stage == null) {
+            return;
+        }
+        applyStageIcon(stage);
+        stage.setTitle(getApplicationName());
     }
 
     /**

@@ -2,10 +2,8 @@ package com.qdc.lims.ui.controller;
 
 import com.qdc.lims.ui.DashboardNavigator;
 import com.qdc.lims.ui.SessionManager;
-import com.qdc.lims.ui.navigation.DashboardSwitchService;
 import com.qdc.lims.ui.navigation.DashboardType;
 import com.qdc.lims.ui.util.LogoutUtil;
-import com.qdc.lims.service.AdminDashboardStatsService;
 import com.qdc.lims.service.BrandingService;
 import com.qdc.lims.service.ConfigService;
 import com.qdc.lims.service.LocaleFormatService;
@@ -17,14 +15,15 @@ import javafx.concurrent.Task;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
-import javafx.scene.Scene;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.ButtonBar;
 import javafx.scene.control.ButtonType;
-import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.ProgressIndicator;
+import javafx.scene.control.Tab;
+import javafx.scene.control.TabPane;
+import javafx.scene.control.Tooltip;
 import javafx.scene.control.ToggleButton;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.VBox;
@@ -47,15 +46,11 @@ public class AdminDashboardController {
 
     private final ApplicationContext applicationContext;
     private final DashboardNavigator navigator;
-    private final DashboardSwitchService dashboardSwitchService;
-    private final AdminDashboardStatsService statsService;
     private final BrandingService brandingService;
     private final ConfigService configService;
     private final LocaleFormatService localeFormatService;
     private final UpdateService updateService;
 
-    @FXML
-    private Label welcomeLabel;
     @FXML
     private Label statusLabel;
     @FXML
@@ -65,35 +60,27 @@ public class AdminDashboardController {
     @FXML
     private Button switchRoleButton;
     @FXML
-    private ComboBox<String> dashboardSwitcher;
-    @FXML
     private Label userLabel;
     @FXML
     private Label footerBrandLabel;
 
     @FXML
-    private Label totalUsersLabel;
-    @FXML
-    private Label todayRevenueLabel;
-    @FXML
-    private Label activeDoctorsLabel;
-    @FXML
-    private Label totalTestsLabel;
-    @FXML
     private ToggleButton receptionLabPasswordToggle;
+    @FXML
+    private ToggleButton sessionTimeoutToggle;
+    @FXML
+    private TabPane adminTabs;
+
+    private static final String TAB_FXML_PATH_KEY = "adminTabFxmlPath";
 
     public AdminDashboardController(ApplicationContext applicationContext,
             DashboardNavigator navigator,
-            DashboardSwitchService dashboardSwitchService,
-            AdminDashboardStatsService statsService,
             BrandingService brandingService,
             ConfigService configService,
             LocaleFormatService localeFormatService,
             UpdateService updateService) {
         this.applicationContext = applicationContext;
         this.navigator = navigator;
-        this.dashboardSwitchService = dashboardSwitchService;
-        this.statsService = statsService;
         this.brandingService = brandingService;
         this.configService = configService;
         this.localeFormatService = localeFormatService;
@@ -104,26 +91,15 @@ public class AdminDashboardController {
     public void initialize() {
         startClock();
 
-        // --- FIX STARTS HERE ---
-        // We use a listener to wait until the Scene and Window (Stage) are ready
-        // This fixes the "method not applicable" error by passing the 3rd argument
-        // (Stage)
-        if (dashboardSwitcher != null) {
-            dashboardSwitcher.sceneProperty().addListener((obs, oldScene, newScene) -> {
+        if (mainContainer != null) {
+            mainContainer.sceneProperty().addListener((obs, oldScene, newScene) -> {
                 if (newScene != null) {
                     newScene.windowProperty().addListener((obs2, oldWindow, newWindow) -> {
                         if (newWindow instanceof Stage stage) {
-                            // 1. Calculate default dashboard for this SPECIFIC window
-                            DashboardType current = DashboardType.ADMIN;
-                            // 2. Pass the stage to the setup method
-                            dashboardSwitchService.setupDashboardSwitcher(dashboardSwitcher, current, stage);
                             brandingService.tagStage(stage, DashboardType.ADMIN.getWindowTitle());
                             User user = SessionManager.getUser(stage);
                             if (user != null) {
                                 String fullName = user.getFullName();
-                                if (welcomeLabel != null) {
-                                    welcomeLabel.setText(fullName);
-                                }
                                 if (userLabel != null) {
                                     userLabel.setText(fullName);
                                 }
@@ -133,45 +109,18 @@ public class AdminDashboardController {
                 }
             });
         }
-        // --- FIX ENDS HERE ---
 
         if (switchRoleButton != null) {
             switchRoleButton.setVisible(false);
-        }
-        if (welcomeLabel != null) {
-            welcomeLabel.setText("Admin");
         }
 
         if (statusLabel != null) {
             statusLabel.setText("System Ready");
         }
 
-        loadDashboardStats();
         applyBranding();
         syncReceptionLabPasswordToggle();
-    }
-
-    private void loadDashboardStats() {
-        try {
-            if (activeDoctorsLabel != null) {
-                activeDoctorsLabel.setText(String.valueOf(statsService.getActiveDoctorsCount()));
-            }
-
-            if (totalTestsLabel != null) {
-                totalTestsLabel.setText(String.valueOf(statsService.getTotalTestsCount()));
-            }
-
-            if (totalUsersLabel != null) {
-                totalUsersLabel.setText(String.valueOf(statsService.getTotalUsersCount()));
-            }
-
-            if (todayRevenueLabel != null) {
-                todayRevenueLabel.setText(statsService.getTodayRevenueLabel());
-            }
-
-        } catch (Exception e) {
-            System.err.println("Error loading stats: " + e.getMessage());
-        }
+        syncSessionTimeoutToggle();
     }
 
     private void startClock() {
@@ -194,29 +143,15 @@ public class AdminDashboardController {
     }
 
     /**
-     * Handle dashboard switcher selection change.
-     */
-    @FXML
-    private void handleDashboardSwitch() {
-        String selectedDashboard = dashboardSwitcher.getValue();
-
-        if (selectedDashboard == null || selectedDashboard.isEmpty()
-                || selectedDashboard.equals(DashboardType.ADMIN.getDisplayName())) {
-            return; // Already on Admin dashboard
-        }
-
-        // Use centralized switch service
-        Stage stage = (Stage) welcomeLabel.getScene().getWindow();
-        dashboardSwitchService.switchToDashboard(selectedDashboard, stage);
-    }
-
-    /**
      * Handle Switch User button - allows quick switching to a different user.
      */
     @FXML
     private void handleSwitchUser() {
         // Delegate to navigator for consistent behavior
-        navigator.switchUser((Stage) welcomeLabel.getScene().getWindow());
+        Stage stage = resolveCurrentStage();
+        if (stage != null) {
+            navigator.switchUser(stage);
+        }
     }
 
     @FXML
@@ -569,6 +504,22 @@ public class AdminDashboardController {
         }
     }
 
+    @FXML
+    private void handleSessionTimeoutToggle() {
+        if (sessionTimeoutToggle == null) {
+            return;
+        }
+        boolean enabled = sessionTimeoutToggle.isSelected();
+        configService.set("SESSION_TIMEOUT_ENABLED", Boolean.toString(enabled));
+        SessionManager.setSessionTimeoutEnabled(enabled);
+        applySessionTimeoutToggleStyle(enabled);
+        if (statusLabel != null) {
+            statusLabel.setText(enabled
+                    ? "Session timeout enabled."
+                    : "Session timeout disabled.");
+        }
+    }
+
     /**
      * Check if current user has admin access.
      */
@@ -616,36 +567,68 @@ public class AdminDashboardController {
         if (!ensureAdminAccess(title)) {
             return;
         }
-        openWindow(fxmlPath, title, width, height);
+        openTab(fxmlPath, title);
     }
 
-    private void openWindow(String fxmlPath, String title, Integer width, Integer height) {
+    private void openTab(String fxmlPath, String title) {
         try {
+            if (adminTabs == null) {
+                showAlert("Error", "Admin workspace is not ready.");
+                return;
+            }
+
+            Tab existingTab = findExistingTab(fxmlPath);
+            if (existingTab != null) {
+                adminTabs.getSelectionModel().select(existingTab);
+                return;
+            }
+
             FXMLLoader loader = new FXMLLoader(getClass().getResource(fxmlPath));
             loader.setControllerFactory(applicationContext::getBean);
             Parent root = loader.load();
 
-            Stage stage = new Stage();
-            brandingService.tagStage(stage, title);
-            if (width != null && height != null) {
-                stage.setScene(new Scene(root, width, height));
-            } else {
-                stage.setScene(new Scene(root));
-            }
-            stage.show();
+            Tab tab = new Tab(title);
+            tab.setContent(root);
+            tab.setClosable(true);
+            tab.setTooltip(new Tooltip(title));
+            tab.getProperties().put(TAB_FXML_PATH_KEY, fxmlPath);
+
+            adminTabs.getTabs().add(tab);
+            adminTabs.getSelectionModel().select(tab);
         } catch (Exception e) {
             e.printStackTrace();
-            showAlert("Error", "Could not open window: " + title + "\n" + e.getMessage());
+            showAlert("Error", "Could not open tab: " + title + "\n" + e.getMessage());
         }
     }
 
+    private Tab findExistingTab(String fxmlPath) {
+        if (adminTabs == null) {
+            return null;
+        }
+        return adminTabs.getTabs().stream()
+                .filter(tab -> fxmlPath.equals(tab.getProperties().get(TAB_FXML_PATH_KEY)))
+                .findFirst()
+                .orElse(null);
+    }
+
     private boolean ensureAdminAccess(String feature) {
-        Stage stage = (Stage) welcomeLabel.getScene().getWindow();
+        Stage stage = resolveCurrentStage();
+        if (stage == null) {
+            showAlert("Error", "Admin window is not ready.");
+            return false;
+        }
         if (!isAdminAccessAllowed(stage)) {
             showAccessDenied(feature);
             return false;
         }
         return true;
+    }
+
+    private Stage resolveCurrentStage() {
+        if (mainContainer == null || mainContainer.getScene() == null || mainContainer.getScene().getWindow() == null) {
+            return null;
+        }
+        return (Stage) mainContainer.getScene().getWindow();
     }
 
     private void applyBranding() {
@@ -664,6 +647,17 @@ public class AdminDashboardController {
         applyReceptionLabPasswordToggleStyle(requirePassword);
     }
 
+    private void syncSessionTimeoutToggle() {
+        if (sessionTimeoutToggle == null) {
+            return;
+        }
+        String value = configService.getTrimmed("SESSION_TIMEOUT_ENABLED", "false");
+        boolean enabled = Boolean.parseBoolean(value);
+        sessionTimeoutToggle.setSelected(enabled);
+        SessionManager.setSessionTimeoutEnabled(enabled);
+        applySessionTimeoutToggleStyle(enabled);
+    }
+
     private void applyReceptionLabPasswordToggleStyle(boolean requirePassword) {
         if (receptionLabPasswordToggle == null) {
             return;
@@ -673,6 +667,18 @@ public class AdminDashboardController {
                 : "Reception/Lab Password: OFF");
         String color = requirePassword ? "#2c3e50" : "#e67e22";
         receptionLabPasswordToggle.setStyle("-fx-background-color: " + color
+                + "; -fx-text-fill: white; -fx-padding: 6 12; -fx-background-radius: 5;");
+    }
+
+    private void applySessionTimeoutToggleStyle(boolean enabled) {
+        if (sessionTimeoutToggle == null) {
+            return;
+        }
+        sessionTimeoutToggle.setText(enabled
+                ? "Session Timeout: ON"
+                : "Session Timeout: OFF");
+        String color = enabled ? "#2c3e50" : "#e67e22";
+        sessionTimeoutToggle.setStyle("-fx-background-color: " + color
                 + "; -fx-text-fill: white; -fx-padding: 6 12; -fx-background-radius: 5;");
     }
 }

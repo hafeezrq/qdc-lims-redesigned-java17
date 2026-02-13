@@ -2,7 +2,6 @@ package com.qdc.lims.ui.controller;
 
 import com.qdc.lims.service.BrandingService;
 import com.qdc.lims.ui.SessionManager;
-import com.qdc.lims.ui.navigation.DashboardSwitchService;
 import com.qdc.lims.ui.navigation.DashboardType;
 import com.qdc.lims.ui.util.LogoutUtil;
 import com.qdc.lims.entity.LabOrder;
@@ -71,7 +70,6 @@ public class ReceptionDashboardController {
     private final LabOrderRepository labOrderRepository;
     private final PanelRepository panelRepository;
     private final ReferenceRangeRepository referenceRangeRepository;
-    private final DashboardSwitchService dashboardSwitchService;
     private final BrandingService brandingService;
     private final LocaleFormatService localeFormatService;
     private final OrderCancellationService orderCancellationService;
@@ -95,8 +93,6 @@ public class ReceptionDashboardController {
     private Label statusLabel;
     @FXML
     private Label footerBrandLabel;
-    @FXML
-    private ComboBox<String> dashboardSwitcher;
     @FXML
     private TextField deliveredSearchField;
     @FXML
@@ -175,7 +171,6 @@ public class ReceptionDashboardController {
             LabOrderRepository labOrderRepository,
             PanelRepository panelRepository,
             ReferenceRangeRepository referenceRangeRepository,
-            DashboardSwitchService dashboardSwitchService,
             BrandingService brandingService,
             LocaleFormatService localeFormatService,
             OrderCancellationService orderCancellationService) {
@@ -183,7 +178,6 @@ public class ReceptionDashboardController {
         this.labOrderRepository = labOrderRepository;
         this.panelRepository = panelRepository;
         this.referenceRangeRepository = referenceRangeRepository;
-        this.dashboardSwitchService = dashboardSwitchService;
         this.brandingService = brandingService;
         this.localeFormatService = localeFormatService;
         this.orderCancellationService = orderCancellationService;
@@ -200,25 +194,15 @@ public class ReceptionDashboardController {
         loadOrders();
         startAutoRefresh();
 
-        // --- CORRECTED INITIALIZATION LOGIC ---
         // We must wait for the Scene/Window to be ready to get the Stage
-        if (dashboardSwitcher != null) {
-            dashboardSwitcher.sceneProperty().addListener((obs, oldScene, newScene) -> {
+        if (mainContainer != null) {
+            mainContainer.sceneProperty().addListener((obs, oldScene, newScene) -> {
                 if (newScene != null) {
                     newScene.windowProperty().addListener((obs2, oldWindow, newWindow) -> {
                         if (newWindow instanceof Stage stage) {
-                            // 1. Get the User for THIS specific window
                             User user = SessionManager.getUser(stage);
-
-                            // 2. Setup the Dashboard Switcher using the Stage (Fixes the "Method Not
-                            // Applicable" error)
-                            DashboardType current = DashboardType.RECEPTION;
-                            dashboardSwitchService.setupDashboardSwitcher(dashboardSwitcher, current, stage);
                             brandingService.tagStage(stage, DashboardType.RECEPTION.getWindowTitle());
 
-                            // 3. Update Welcome Labels for THIS specific user
-                            // This ensures we don't accidentally show "Welcome Admin" on the Reception
-                            // screen
                             if (user != null) {
                                 String username = user.getUsername();
                                 if (userLabel != null)
@@ -1688,20 +1672,7 @@ public class ReceptionDashboardController {
         return false;
     }
 
-    // ========== Dashboard Switching & Logout ==========
-
-    @FXML
-    private void handleDashboardSwitch() {
-        String selected = dashboardSwitcher.getValue();
-        if (selected == null || selected.isEmpty() || selected.equals(DashboardType.RECEPTION.getDisplayName())) {
-            return;
-        }
-
-        stopAutoRefresh();
-        // Correct usage: Pass Stage
-        Stage stage = (Stage) mainContainer.getScene().getWindow();
-        dashboardSwitchService.switchToDashboard(selected, stage);
-    }
+    // ========== Logout ==========
 
     @FXML
     private void handleLogout() {

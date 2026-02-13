@@ -94,7 +94,7 @@ public class DashboardNavigator {
 
             Scene mainScene = new Scene(root, 1100, 750);
 
-            brandingService.tagStage(currentStage, brandingService.getApplicationName());
+            brandingService.applyMainStageBranding(currentStage);
             currentStage.setMaximized(false);
             currentStage.setScene(mainScene);
             currentStage.setWidth(1100);

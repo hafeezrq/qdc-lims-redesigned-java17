@@ -50,7 +50,7 @@ public class DesktopApplication extends Application {
         Scene scene = new Scene(root, 1100, 750);
 
         BrandingService brandingService = springContext.getBean(BrandingService.class);
-        brandingService.tagStage(primaryStage, brandingService.getApplicationName());
+        brandingService.applyMainStageBranding(primaryStage);
         primaryStage.setScene(scene);
         primaryStage.setMinWidth(900);
         primaryStage.setMinHeight(600);

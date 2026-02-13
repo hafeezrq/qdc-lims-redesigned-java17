@@ -6,7 +6,8 @@
 <?import javafx.scene.text.*?>
 
 <BorderPane xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" 
-            fx:controller="com.qdc.lims.ui.controller.LabDashboardController">
+            fx:controller="com.qdc.lims.ui.controller.LabDashboardController"
+            fx:id="mainContainer">
     
     <!-- Top Menu Bar -->
     <top>
@@ -15,11 +16,6 @@
             <HBox style="-fx-background-color: #9b59b6; -fx-padding: 8 15;" spacing="10" alignment="CENTER_LEFT">
                 <Label text="Lab Dashboard" style="-fx-font-size: 16; -fx-font-weight: bold; -fx-text-fill: white;"/>
                 <Region HBox.hgrow="ALWAYS"/>
-                <Label fx:id="userLabel" style="-fx-text-fill: rgba(255,255,255,0.8); -fx-font-size: 12;"/>
-                <ComboBox fx:id="dashboardSwitcher" promptText="Switch Dashboard"
-                          style="-fx-background-color: white; -fx-font-size: 11;"
-                          prefWidth="140"
-                          onAction="#handleDashboardSwitch"/>
                 <Button text="Logout" onAction="#handleLogout"
                         style="-fx-background-color: #c0392b; -fx-text-fill: white; -fx-font-size: 11; -fx-padding: 5 12; -fx-background-radius: 4; -fx-cursor: hand;"/>
             </HBox>
@@ -40,13 +36,6 @@
             <padding>
                 <Insets top="50" right="50" bottom="50" left="50"/>
             </padding>
-            
-            <!-- Welcome Message -->
-            <VBox alignment="CENTER" spacing="15">
-                <Label text="Lab Dashboard" style="-fx-font-size: 32; -fx-font-weight: bold; -fx-text-fill: #9b59b6;"/>
-                <Label fx:id="welcomeLabel" style="-fx-font-size: 18; -fx-text-fill: #7f8c8d;"/>
-                <Label fx:id="roleLabel" style="-fx-font-size: 14; -fx-text-fill: #9b59b6; -fx-font-weight: bold;"/>
-            </VBox>
             
             <!-- Quick Actions -->
             <VBox spacing="20" alignment="CENTER">

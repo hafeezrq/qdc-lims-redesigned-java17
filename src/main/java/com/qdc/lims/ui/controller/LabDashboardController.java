@@ -2,8 +2,6 @@ package com.qdc.lims.ui.controller;
 
 import com.qdc.lims.service.BrandingService;
 import com.qdc.lims.ui.DashboardNavigator;
-import com.qdc.lims.ui.SessionManager;
-import com.qdc.lims.ui.navigation.DashboardSwitchService;
 import com.qdc.lims.ui.navigation.DashboardType;
 import com.qdc.lims.ui.util.LogoutUtil;
 import com.qdc.lims.repository.LabOrderRepository;
@@ -32,16 +30,7 @@ import java.time.LocalDate;
 public class LabDashboardController {
 
     @FXML
-    private Label userLabel;
-
-    @FXML
-    private Label welcomeLabel;
-
-    @FXML
-    private Label roleLabel;
-
-    @FXML
-    private ComboBox<String> dashboardSwitcher;
+    private BorderPane mainContainer;
 
     @FXML
     private Label pendingCountLabel;
@@ -60,25 +49,20 @@ public class LabDashboardController {
     private final ApplicationContext springContext;
     private final DashboardNavigator navigator;
     private final LabOrderRepository labOrderRepository;
-    private final DashboardSwitchService dashboardSwitchService;
     private final BrandingService brandingService;
 
     public LabDashboardController(ApplicationContext springContext,
             DashboardNavigator navigator,
             LabOrderRepository labOrderRepository,
-            DashboardSwitchService dashboardSwitchService,
             BrandingService brandingService) {
         this.springContext = springContext;
         this.navigator = navigator;
         this.labOrderRepository = labOrderRepository;
-        this.dashboardSwitchService = dashboardSwitchService;
         this.brandingService = brandingService;
     }
 
     @FXML
     private void initialize() {
-        updateUserLabels();
-
         // Hide switch button - not needed in tabbed interface
         if (switchRoleButton != null) {
             switchRoleButton.setVisible(false);
@@ -90,31 +74,18 @@ public class LabDashboardController {
         // Start auto-refresh for real-time count updates
         startAutoRefresh();
 
-        if (welcomeLabel != null) {
-            welcomeLabel.sceneProperty().addListener((obs, oldScene, newScene) -> {
+        if (mainContainer != null) {
+            mainContainer.sceneProperty().addListener((obs, oldScene, newScene) -> {
                 if (newScene != null) {
                     newScene.windowProperty().addListener((obs2, oldWindow, newWindow) -> {
                         if (newWindow instanceof Stage stage) {
                             stage.setOnShown(e -> {
                                 brandingService.tagStage(stage, DashboardType.LAB.getWindowTitle());
-                                updateUserLabels();
                                 loadDashboardStats();
                                 startAutoRefresh();
                                 applyBranding();
                             });
                             stage.setOnHidden(e -> stopAutoRefresh());
-                        }
-                    });
-                }
-            });
-        }
-
-        if (dashboardSwitcher != null) {
-            dashboardSwitcher.sceneProperty().addListener((obs, oldScene, newScene) -> {
-                if (newScene != null) {
-                    newScene.windowProperty().addListener((obs2, oldWindow, newWindow) -> {
-                        if (newWindow instanceof Stage stage) {
-                            dashboardSwitchService.setupDashboardSwitcher(dashboardSwitcher, DashboardType.LAB, stage);
                         }
                     });
                 }
@@ -188,45 +159,20 @@ public class LabDashboardController {
         }
     }
 
-    private void updateUserLabels() {
-        if (SessionManager.getCurrentUser() != null) {
-            String fullName = SessionManager.getCurrentUser().getFullName();
-            if (welcomeLabel != null) {
-                welcomeLabel.setText(fullName);
-            }
-            if (userLabel != null) {
-                userLabel.setText(fullName);
-            }
-        }
-
-        if (roleLabel != null && SessionManager.getCurrentRole() != null) {
-            roleLabel.setText("Active Role: " + SessionManager.getCurrentRole());
-        }
-    }
-
     /**
      * Handle Switch User button - allows quick switching to a different user.
      */
     @FXML
     private void handleSwitchUser() {
-        navigator.switchUser((Stage) welcomeLabel.getScene().getWindow());
-    }
-
-    @FXML
-    private void handleDashboardSwitch() {
-        String selected = dashboardSwitcher.getValue();
-        if (selected == null || selected.isEmpty() || selected.equals(DashboardType.LAB.getDisplayName())) {
-            return;
+        Stage stage = resolveCurrentStage();
+        if (stage != null) {
+            navigator.switchUser(stage);
         }
-
-        stopAutoRefresh();
-        Stage stage = (Stage) welcomeLabel.getScene().getWindow();
-        dashboardSwitchService.switchToDashboard(selected, stage);
     }
 
     @FXML
     private void handleLogout() {
-        LogoutUtil.confirmAndCloseParentTab(welcomeLabel);
+        LogoutUtil.confirmAndCloseParentTab(mainContainer);
     }
 
     // Menu action handlers
@@ -336,10 +282,10 @@ public class LabDashboardController {
     }
 
     private Tab findCurrentSessionTab() {
-        if (welcomeLabel == null || welcomeLabel.getScene() == null) {
+        if (mainContainer == null || mainContainer.getScene() == null) {
             return null;
         }
-        if (!(welcomeLabel.getScene().getRoot() instanceof BorderPane borderPane)) {
+        if (!(mainContainer.getScene().getRoot() instanceof BorderPane borderPane)) {
             return null;
         }
         if (!(borderPane.getCenter() instanceof TabPane tabPane)) {
@@ -347,7 +293,7 @@ public class LabDashboardController {
         }
         for (Tab tab : tabPane.getTabs()) {
             Node tabContent = tab.getContent();
-            if (tabContent == welcomeLabel || isDescendantOf(welcomeLabel, tabContent)) {
+            if (tabContent == mainContainer || isDescendantOf(mainContainer, tabContent)) {
                 return tab;
             }
         }
@@ -407,6 +353,13 @@ public class LabDashboardController {
         Stage stage = new Stage();
         brandingService.tagStage(stage, context);
         return stage;
+    }
+
+    private Stage resolveCurrentStage() {
+        if (mainContainer == null || mainContainer.getScene() == null || mainContainer.getScene().getWindow() == null) {
+            return null;
+        }
+        return (Stage) mainContainer.getScene().getWindow();
     }
 
     private void showAlert(String title, String message) {

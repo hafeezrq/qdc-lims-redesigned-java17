@@ -11,6 +11,9 @@ import com.qdc.lims.service.PasswordPolicyService;
 import com.qdc.lims.service.UserService;
 import com.qdc.lims.repository.RoleRepository;
 import com.qdc.lims.repository.UserRepository;
+import javafx.animation.Animation;
+import javafx.animation.KeyFrame;
+import javafx.animation.Timeline;
 import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
@@ -23,16 +26,13 @@ import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.VBox;
-import javafx.stage.Stage;
-import javafx.stage.Modality;
-import javafx.animation.Animation;
-import javafx.animation.KeyFrame;
-import javafx.animation.Timeline;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseEvent;
+import javafx.stage.Stage;
+import javafx.stage.Modality;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Controller;
-import org.springframework.beans.factory.annotation.Value;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -92,6 +92,8 @@ public class MainWindowController {
     @FXML
     private Label sessionCountLabel;
     @FXML
+    private Label activeRoleLabel;
+    @FXML
     private Label appHeaderLabel;
     @FXML
     private Label welcomeTitleLabel;
@@ -106,6 +108,7 @@ public class MainWindowController {
 
     // Track which tab belongs to which session
     private final Map<Tab, SessionInfo> tabSessions = new HashMap<>();
+    private static final String SESSION_TIMEOUT_ENABLED_KEY = "SESSION_TIMEOUT_ENABLED";
 
     @Value("${qdc.session.timeout:30}")
     private long sessionTimeoutMinutes;
@@ -244,13 +247,13 @@ public class MainWindowController {
     }
 
     private void applyBrandingToLabels() {
-        String labName = brandingService.getLabNameOrAppName();
+        String appName = brandingService.getApplicationName();
 
         if (appHeaderLabel != null) {
-            appHeaderLabel.setText("🧪 " + labName);
+            appHeaderLabel.setText("🧪 " + appName);
         }
         if (welcomeTitleLabel != null) {
-            welcomeTitleLabel.setText(labName);
+            welcomeTitleLabel.setText(appName);
         }
         if (welcomeSubtitleLabel != null) {
             welcomeSubtitleLabel.setText("Laboratory Information Management System");
@@ -270,7 +273,7 @@ public class MainWindowController {
             }
             newScene.windowProperty().addListener((obs2, oldWindow, newWindow) -> {
                 if (newWindow instanceof Stage stage) {
-                    brandingService.tagStage(stage, brandingService.getApplicationName());
+                    brandingService.applyMainStageBranding(stage);
                     if (!firstRunPromptShown) {
                         firstRunPromptShown = true;
                         Platform.runLater(() -> {
@@ -959,7 +962,32 @@ public class MainWindowController {
             } else {
                 adminLoginBtn.setTooltip(new Tooltip("Login as Admin"));
             }
+
+            updateActiveRoleLabel();
         });
+    }
+
+    private void updateActiveRoleLabel() {
+        if (activeRoleLabel == null) {
+            return;
+        }
+        Tab activeTab = sessionTabs.getSelectionModel().getSelectedItem();
+        if (activeTab == null) {
+            activeRoleLabel.setText("Active: None");
+            return;
+        }
+        SessionInfo session = tabSessions.get(activeTab);
+        if (session == null || session.dashboardType == null) {
+            activeRoleLabel.setText("Active: None");
+            return;
+        }
+
+        String role = switch (session.dashboardType) {
+            case RECEPTION -> "Reception";
+            case LAB -> "Lab";
+            case ADMIN -> "Admin";
+        };
+        activeRoleLabel.setText("Active: " + role);
     }
 
     /**
@@ -1292,10 +1320,6 @@ public class MainWindowController {
     }
 
     private void setupSessionTimeoutHandlers() {
-        if (sessionTimeoutMinutes <= 0) {
-            return;
-        }
-
         sessionExpiryTimer = new Timeline(
                 new KeyFrame(javafx.util.Duration.seconds(30), event -> expireInactiveSessions()));
         sessionExpiryTimer.setCycleCount(Animation.INDEFINITE);
@@ -1322,7 +1346,7 @@ public class MainWindowController {
     }
 
     private void expireInactiveSessions() {
-        if (sessionTimeoutMinutes <= 0) {
+        if (!isSessionTimeoutEnabled()) {
             return;
         }
 
@@ -1358,7 +1382,7 @@ public class MainWindowController {
     }
 
     private boolean isExpired(SessionInfo session) {
-        Duration timeout = getSessionTimeout(session);
+        Duration timeout = getSessionTimeout();
         if (timeout.isZero()) {
             return false;
         }
@@ -1368,17 +1392,16 @@ public class MainWindowController {
         return Duration.between(session.lastAccess, Instant.now()).compareTo(timeout) > 0;
     }
 
-    private Duration getSessionTimeout(SessionInfo session) {
-        if (sessionTimeoutMinutes <= 0) {
-            return Duration.ZERO;
-        }
-        if (session != null
-                && !isAdminUser(session.user)
-                && (session.dashboardType == DashboardType.RECEPTION
-                        || session.dashboardType == DashboardType.LAB)) {
+    private Duration getSessionTimeout() {
+        if (!isSessionTimeoutEnabled() || sessionTimeoutMinutes <= 0) {
             return Duration.ZERO;
         }
         return Duration.ofMinutes(sessionTimeoutMinutes);
+    }
+
+    private boolean isSessionTimeoutEnabled() {
+        String value = configService.getTrimmed(SESSION_TIMEOUT_ENABLED_KEY, "false");
+        return Boolean.parseBoolean(value);
     }
 
     /**
