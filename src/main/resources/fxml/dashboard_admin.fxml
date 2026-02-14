@@ -59,6 +59,7 @@
                     <MenuItem text="Backup &amp; Snapshots" onAction="#handleBackupSettings"/>
                     <MenuItem text="System Configuration" onAction="#handleSystemConfig"/>
                     <MenuItem text="Result Edit Audit" onAction="#handleResultEditAudit"/>
+                    <MenuItem text="Maintenance Token..." onAction="#handleMaintenanceToken"/>
                 </Menu>
             </MenuBar>
         </VBox>

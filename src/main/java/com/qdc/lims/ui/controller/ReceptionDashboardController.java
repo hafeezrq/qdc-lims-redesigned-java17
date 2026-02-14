@@ -10,7 +10,7 @@ import com.qdc.lims.entity.Panel;
 import com.qdc.lims.entity.Patient;
 import com.qdc.lims.entity.ReferenceRange;
 import com.qdc.lims.entity.TestDefinition;
-import com.qdc.lims.entity.User; // <--- ADDED THIS IMPORT TO FIX THE ERROR
+import com.qdc.lims.entity.User;
 import com.qdc.lims.repository.LabOrderRepository;
 import com.qdc.lims.repository.PanelRepository;
 import com.qdc.lims.repository.ReferenceRangeRepository;
@@ -401,12 +401,19 @@ public class ReceptionDashboardController {
                     }
 
                     boolean canCancel = orderCancellationService.canCancel(order);
-                    cancelBtn.setDisable(!canCancel);
-                    if (canCancel) {
-                        cancelBtn.setTooltip(new Tooltip("Cancel order and process refund if paid."));
-                    } else {
+                    if (!canCancel) {
+                        cancelBtn.setDisable(true);
+                        cancelBtn.setStyle(
+                                "-fx-background-color: #c0392b; -fx-text-fill: white; -fx-font-size: 11; -fx-padding: 3 10;");
                         cancelBtn.setTooltip(new Tooltip("Cancellation disabled: lab work already in progress."));
+                        setGraphic(cancelBtn);
+                        return;
                     }
+
+                    cancelBtn.setDisable(false);
+                    cancelBtn.setStyle(
+                            "-fx-background-color: #d35400; -fx-text-fill: white; -fx-font-size: 11; -fx-padding: 3 10;");
+                    cancelBtn.setTooltip(new Tooltip("Admin cancellation key is required to cancel this order."));
                     setGraphic(cancelBtn);
                 }
             });
@@ -545,14 +552,24 @@ public class ReceptionDashboardController {
         }
 
         try {
-            OrderCancellationService.CancellationResult result = orderCancellationService.cancelOrder(order.getId());
+            String approvalKey = promptCancellationApprovalKey();
+            if (approvalKey == null) {
+                return;
+            }
+
+            OrderCancellationService.CancellationResult result = orderCancellationService
+                    .cancelOrderAuthorized(order.getId(), approvalKey);
             String message = "Order #" + result.orderId() + " cancelled and deleted successfully.";
             if (result.refundAmount() != null && result.refundAmount().compareTo(BigDecimal.ZERO) > 0) {
                 message += "\nRefund recorded: " + localeFormatService.formatCurrency(result.refundAmount());
             } else {
                 message += "\nNo refund was required.";
             }
+            message += "\nApproved using admin cancellation key.";
             showAlert("Order Cancelled", message);
+            loadOrders();
+        } catch (SecurityException ex) {
+            showError(ex.getMessage());
             loadOrders();
         } catch (IllegalStateException ex) {
             showError(ex.getMessage());
@@ -560,6 +577,69 @@ public class ReceptionDashboardController {
         } catch (Exception ex) {
             showError("Failed to cancel order: " + ex.getMessage());
         }
+    }
+
+    private String promptCancellationApprovalKey() {
+        if (!orderCancellationService.isCancellationKeyConfigured()) {
+            showError("Cancellation key is not configured. Ask admin to set it from Admin menu.");
+            return null;
+        }
+
+        Dialog<String> dialog = new Dialog<>();
+        dialog.setTitle("Cancellation Key Required");
+        dialog.setHeaderText("Enter admin cancellation key to approve this order cancellation.");
+
+        ButtonType approveButtonType = new ButtonType("Approve", ButtonBar.ButtonData.OK_DONE);
+        dialog.getDialogPane().getButtonTypes().addAll(approveButtonType, ButtonType.CANCEL);
+
+        PasswordField keyField = new PasswordField();
+        keyField.setPromptText("Cancellation key");
+        keyField.setPrefWidth(260);
+
+        Label errorLabel = new Label();
+        errorLabel.setStyle("-fx-text-fill: #c0392b;");
+
+        VBox content = new VBox(10,
+                new Label("This operation requires admin cancellation key."),
+                keyField,
+                errorLabel);
+        content.setPadding(new Insets(15));
+        dialog.getDialogPane().setContent(content);
+
+        Button approveButton = (Button) dialog.getDialogPane().lookupButton(approveButtonType);
+        approveButton.setDisable(true);
+        approveButton.setStyle("-fx-background-color: #d35400; -fx-text-fill: white;");
+        keyField.textProperty().addListener((obs, oldVal, newVal) -> approveButton.setDisable(newVal.trim().isEmpty()));
+
+        keyField.setOnAction(e -> {
+            if (!approveButton.isDisabled()) {
+                approveButton.fire();
+            }
+        });
+
+        approveButton.addEventFilter(javafx.event.ActionEvent.ACTION, event -> {
+            String key = keyField.getText();
+            if (!orderCancellationService.isCancellationKeyConfigured()) {
+                errorLabel.setText("Cancellation key is not configured.");
+                event.consume();
+                return;
+            }
+            if (key == null || key.trim().isEmpty()) {
+                errorLabel.setText("Cancellation key is required.");
+                event.consume();
+                return;
+            }
+            if (!orderCancellationService.verifyCancellationKey(key.trim())) {
+                errorLabel.setText("Invalid cancellation key.");
+                event.consume();
+                return;
+            }
+            dialog.setResult(key.trim());
+        });
+
+        dialog.setResultConverter(button -> button == approveButtonType ? dialog.getResult() : null);
+        Platform.runLater(keyField::requestFocus);
+        return dialog.showAndWait().orElse(null);
     }
 
     private String buildCancellationConfirmationText(Long orderId, BigDecimal refundAmount) {

@@ -5,6 +5,7 @@ import com.qdc.lims.ui.SessionManager;
 import com.qdc.lims.ui.navigation.DashboardType;
 import com.qdc.lims.ui.util.LogoutUtil;
 import com.qdc.lims.service.BrandingService;
+import com.qdc.lims.service.CancellationApprovalKeyService;
 import com.qdc.lims.service.ConfigService;
 import com.qdc.lims.service.LocaleFormatService;
 import com.qdc.lims.service.UpdateService;
@@ -19,12 +20,14 @@ import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.ButtonBar;
 import javafx.scene.control.ButtonType;
+import javafx.scene.control.Dialog;
 import javafx.scene.control.Label;
 import javafx.scene.control.ProgressIndicator;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
 import javafx.scene.control.Tooltip;
 import javafx.scene.control.ToggleButton;
+import javafx.scene.control.PasswordField;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
@@ -48,6 +51,7 @@ public class AdminDashboardController {
     private final DashboardNavigator navigator;
     private final BrandingService brandingService;
     private final ConfigService configService;
+    private final CancellationApprovalKeyService cancellationApprovalKeyService;
     private final LocaleFormatService localeFormatService;
     private final UpdateService updateService;
 
@@ -77,12 +81,14 @@ public class AdminDashboardController {
             DashboardNavigator navigator,
             BrandingService brandingService,
             ConfigService configService,
+            CancellationApprovalKeyService cancellationApprovalKeyService,
             LocaleFormatService localeFormatService,
             UpdateService updateService) {
         this.applicationContext = applicationContext;
         this.navigator = navigator;
         this.brandingService = brandingService;
         this.configService = configService;
+        this.cancellationApprovalKeyService = cancellationApprovalKeyService;
         this.localeFormatService = localeFormatService;
         this.updateService = updateService;
     }
@@ -330,6 +336,117 @@ public class AdminDashboardController {
     @FXML
     private void handleSystemConfig() {
         openAdminWindow("/fxml/system_settings.fxml", "System Configuration");
+    }
+
+    @FXML
+    private void handleMaintenanceToken() {
+        if (!ensureAdminAccess("Maintenance Token")) {
+            return;
+        }
+
+        boolean configured = cancellationApprovalKeyService.isKeyConfigured();
+        Dialog<ButtonType> dialog = new Dialog<>();
+        dialog.setTitle("Maintenance Token");
+        dialog.setHeaderText(configured
+                ? "Rotate cancellation approval key"
+                : "Set cancellation approval key");
+
+        ButtonType saveType = new ButtonType("Save", ButtonBar.ButtonData.OK_DONE);
+        dialog.getDialogPane().getButtonTypes().addAll(saveType, ButtonType.CANCEL);
+
+        VBox content = new VBox(10);
+        content.setPadding(new javafx.geometry.Insets(15));
+
+        PasswordField currentKeyField = null;
+        if (configured) {
+            currentKeyField = new PasswordField();
+            currentKeyField.setPromptText("Current key");
+            content.getChildren().addAll(new Label("Current key"), currentKeyField);
+        }
+
+        PasswordField newKeyField = new PasswordField();
+        newKeyField.setPromptText("New key");
+        PasswordField confirmKeyField = new PasswordField();
+        confirmKeyField.setPromptText("Confirm new key");
+
+        Label hintLabel = new Label("Use at least 6 characters. This key is required for order cancellation.");
+        hintLabel.setStyle("-fx-text-fill: #7f8c8d; -fx-font-size: 11;");
+        Label errorLabel = new Label();
+        errorLabel.setStyle("-fx-text-fill: #c0392b;");
+
+        content.getChildren().addAll(
+                new Label("New key"),
+                newKeyField,
+                new Label("Confirm key"),
+                confirmKeyField,
+                hintLabel,
+                errorLabel);
+        dialog.getDialogPane().setContent(content);
+
+        Button saveButton = (Button) dialog.getDialogPane().lookupButton(saveType);
+        saveButton.setStyle("-fx-background-color: #2c3e50; -fx-text-fill: white;");
+
+        PasswordField currentFieldRef = currentKeyField;
+        Runnable updateSaveState = () -> {
+            boolean missingCurrent = configured
+                    && (currentFieldRef == null || currentFieldRef.getText() == null || currentFieldRef.getText().trim().isEmpty());
+            boolean disabled = missingCurrent
+                    || newKeyField.getText() == null
+                    || newKeyField.getText().trim().isEmpty()
+                    || confirmKeyField.getText() == null
+                    || confirmKeyField.getText().trim().isEmpty();
+            saveButton.setDisable(disabled);
+        };
+        updateSaveState.run();
+        if (currentKeyField != null) {
+            currentKeyField.textProperty().addListener((obs, oldVal, newVal) -> updateSaveState.run());
+            currentKeyField.setOnAction(e -> {
+                if (!saveButton.isDisabled()) {
+                    saveButton.fire();
+                }
+            });
+        }
+        newKeyField.textProperty().addListener((obs, oldVal, newVal) -> updateSaveState.run());
+        confirmKeyField.textProperty().addListener((obs, oldVal, newVal) -> updateSaveState.run());
+        confirmKeyField.setOnAction(e -> {
+            if (!saveButton.isDisabled()) {
+                saveButton.fire();
+            }
+        });
+
+        saveButton.addEventFilter(javafx.event.ActionEvent.ACTION, event -> {
+            String current = currentFieldRef != null ? currentFieldRef.getText() : "";
+            String newKey = newKeyField.getText() == null ? "" : newKeyField.getText().trim();
+            String confirm = confirmKeyField.getText() == null ? "" : confirmKeyField.getText().trim();
+
+            if (configured && !cancellationApprovalKeyService.verifyKey(current)) {
+                errorLabel.setText("Current key is incorrect.");
+                event.consume();
+                return;
+            }
+            if (!newKey.equals(confirm)) {
+                errorLabel.setText("New key and confirm key do not match.");
+                event.consume();
+                return;
+            }
+            try {
+                cancellationApprovalKeyService.setKey(newKey);
+            } catch (IllegalArgumentException ex) {
+                errorLabel.setText(ex.getMessage());
+                event.consume();
+                return;
+            }
+
+            if (statusLabel != null) {
+                statusLabel.setText("Cancellation approval key updated.");
+            }
+            showAlert("Saved", "Cancellation approval key saved successfully.");
+        });
+
+        Optional<ButtonType> result = dialog.showAndWait();
+        if (result.isPresent() && result.get() == saveType && statusLabel != null) {
+            statusLabel.setText("Cancellation key ready for reception cancellation approvals.");
+        }
     }
 
     @FXML

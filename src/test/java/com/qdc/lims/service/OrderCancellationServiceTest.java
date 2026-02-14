@@ -44,6 +44,8 @@ class OrderCancellationServiceTest {
     private CommissionLedgerRepository commissionLedgerRepository;
     @Mock
     private PaymentRepository paymentRepository;
+    @Mock
+    private CancellationApprovalKeyService cancellationApprovalKeyService;
 
     @InjectMocks
     private OrderCancellationService orderCancellationService;
@@ -52,6 +54,7 @@ class OrderCancellationServiceTest {
     void cancelOrderShouldRollbackInventoryAndCreateRefund() {
         Long orderId = 10L;
         Long itemId = 99L;
+        String approvalKey = "admin-key";
 
         LabOrder order = buildPendingOrder(orderId, BigDecimal.valueOf(500));
         TestDefinition testDefinition = new TestDefinition();
@@ -79,8 +82,10 @@ class OrderCancellationServiceTest {
         when(testConsumptionRepository.findByTest(testDefinition)).thenReturn(List.of(ingredient));
         when(inventoryItemRepository.findById(itemId)).thenReturn(Optional.of(inventoryItem));
         when(commissionLedgerRepository.findByLabOrderId(orderId)).thenReturn(Optional.of(commissionLedger));
+        when(cancellationApprovalKeyService.verifyKey(approvalKey)).thenReturn(true);
 
-        OrderCancellationService.CancellationResult resultSummary = orderCancellationService.cancelOrder(orderId);
+        OrderCancellationService.CancellationResult resultSummary = orderCancellationService
+                .cancelOrderAuthorized(orderId, approvalKey);
 
         assertEquals(orderId, resultSummary.orderId());
         assertEquals(0, BigDecimal.valueOf(500).compareTo(resultSummary.refundAmount()));
@@ -101,14 +106,30 @@ class OrderCancellationServiceTest {
     @Test
     void cancelOrderShouldFailWhenLabAlreadyStarted() {
         Long orderId = 11L;
+        String approvalKey = "admin-key";
         LabOrder order = buildPendingOrder(orderId, BigDecimal.ZERO);
         order.setLabStartedAt(LocalDateTime.now());
 
         when(labOrderRepository.findById(orderId)).thenReturn(Optional.of(order));
+        when(cancellationApprovalKeyService.verifyKey(approvalKey)).thenReturn(true);
 
-        assertThrows(IllegalStateException.class, () -> orderCancellationService.cancelOrder(orderId));
+        assertThrows(IllegalStateException.class,
+                () -> orderCancellationService.cancelOrderAuthorized(orderId, approvalKey));
 
         verify(paymentRepository, never()).save(org.mockito.ArgumentMatchers.any());
+        verify(labOrderRepository, never()).delete(org.mockito.ArgumentMatchers.any());
+    }
+
+    @Test
+    void cancelOrderShouldRequireAuthorizedApprover() {
+        Long orderId = 13L;
+        String approvalKey = "wrong-key";
+        when(cancellationApprovalKeyService.verifyKey(approvalKey)).thenReturn(false);
+
+        assertThrows(SecurityException.class,
+                () -> orderCancellationService.cancelOrderAuthorized(orderId, approvalKey));
+
+        verify(labOrderRepository, never()).findById(org.mockito.ArgumentMatchers.any());
         verify(labOrderRepository, never()).delete(org.mockito.ArgumentMatchers.any());
     }
 
@@ -134,4 +155,5 @@ class OrderCancellationServiceTest {
         order.setResults(new ArrayList<>());
         return order;
     }
+
 }

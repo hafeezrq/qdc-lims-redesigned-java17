@@ -58,6 +58,7 @@ public class ConfigService {
 
         createIfNotExists("REQUIRE_PASSWORD_RECEPTION_LAB", "true", "Security");
         createIfNotExists("SESSION_TIMEOUT_ENABLED", "false", "Security");
+        createIfNotExists("CANCEL_APPROVAL_KEY_HASH", "", "Security");
 
         createIfNotExists("REPORT_HEADER_TEXT", "", "Reports");
         createIfNotExists("REPORT_FOOTER_TEXT", "", "Reports");

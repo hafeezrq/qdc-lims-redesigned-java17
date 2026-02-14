@@ -31,17 +31,20 @@ public class OrderCancellationService {
     private final InventoryItemRepository inventoryItemRepository;
     private final CommissionLedgerRepository commissionLedgerRepository;
     private final PaymentRepository paymentRepository;
+    private final CancellationApprovalKeyService cancellationApprovalKeyService;
 
     public OrderCancellationService(LabOrderRepository labOrderRepository,
             TestConsumptionRepository testConsumptionRepository,
             InventoryItemRepository inventoryItemRepository,
             CommissionLedgerRepository commissionLedgerRepository,
-            PaymentRepository paymentRepository) {
+            PaymentRepository paymentRepository,
+            CancellationApprovalKeyService cancellationApprovalKeyService) {
         this.labOrderRepository = labOrderRepository;
         this.testConsumptionRepository = testConsumptionRepository;
         this.inventoryItemRepository = inventoryItemRepository;
         this.commissionLedgerRepository = commissionLedgerRepository;
         this.paymentRepository = paymentRepository;
+        this.cancellationApprovalKeyService = cancellationApprovalKeyService;
     }
 
     /**
@@ -104,11 +107,23 @@ public class OrderCancellationService {
         return !hasLabWorkStarted(order);
     }
 
+    public boolean isCancellationKeyConfigured() {
+        return cancellationApprovalKeyService.isKeyConfigured();
+    }
+
+    public boolean verifyCancellationKey(String approvalKey) {
+        return cancellationApprovalKeyService.verifyKey(approvalKey);
+    }
+
     /**
      * Cancels a pending order before lab work starts and records refund.
      */
     @Transactional
-    public CancellationResult cancelOrder(Long orderId) {
+    public CancellationResult cancelOrderAuthorized(Long orderId, String approvalKey) {
+        if (!verifyCancellationKey(approvalKey)) {
+            throw new SecurityException("Cancellation approver authorization is required.");
+        }
+
         LabOrder order = labOrderRepository.findById(orderId)
                 .orElseThrow(() -> new IllegalArgumentException("Order not found: " + orderId));
 
