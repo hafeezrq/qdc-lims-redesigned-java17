@@ -251,6 +251,8 @@
 					<input>${project.build.directory}/jpackage</input>
 					<mainJar>${project.build.finalName}.jar</mainJar>
 					<mainClass>org.springframework.boot.loader.launch.JarLauncher</mainClass>
+					<icon>${project.basedir}/src/main/resources/icons/microscope.ico</icon>
+					<resourceDir>${project.basedir}/src/main/jpackage/windows</resourceDir>
 					<modulePaths>
 						<path>${javafx.jmods.path}</path>
 					</modulePaths>
@@ -273,19 +275,15 @@
 						<module>jdk.jfr</module>
 						<module>jdk.unsupported</module>
 					</addModules>
-						<options>
-							<option>--resource-dir</option>
-							<option>${project.basedir}/src/main/jpackage/windows</option>
-							<option>--icon</option>
-							<option>${project.basedir}/src/main/resources/icons/microscope.ico</option>
-							<option>--strip-debug</option>
-							<option>--no-man-pages</option>
-							<option>--no-header-files</option>
-							<option>--win-dir-chooser</option>
-							<option>--win-menu</option>
-							<option>--win-shortcut</option>
-						</options>
-					</configuration>
+					<jLinkOptions>
+						<option>--strip-debug</option>
+						<option>--no-man-pages</option>
+						<option>--no-header-files</option>
+					</jLinkOptions>
+					<winDirChooser>true</winDirChooser>
+					<winMenu>true</winMenu>
+					<winShortcut>true</winShortcut>
+				</configuration>
 				</plugin>
 			</plugins>
 		</build>
@@ -300,9 +298,7 @@
 							<groupId>org.panteleyev</groupId>
 							<artifactId>jpackage-maven-plugin</artifactId>
 							<configuration>
-								<options combine.children="append">
-									<option>--win-console</option>
-								</options>
+								<winConsole>true</winConsole>
 							</configuration>
 						</plugin>
 					</plugins>
