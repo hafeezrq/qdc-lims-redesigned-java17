@@ -40,14 +40,27 @@ public final class ViewCloseUtil {
 
         TabPane bestPane = null;
         Tab bestTab = null;
-        int bestDistance = Integer.MAX_VALUE;
+        int bestScore = Integer.MAX_VALUE;
 
         for (TabPane tabPane : tabPanes) {
+            // Ignore local navigation panes (e.g. settings sub-tabs) and only target
+            // closable host tabs that represent open views/windows.
+            if (tabPane.getTabClosingPolicy() == TabPane.TabClosingPolicy.UNAVAILABLE) {
+                continue;
+            }
             for (Tab tab : tabPane.getTabs()) {
+                if (!tab.isClosable()) {
+                    continue;
+                }
                 Node tabContent = tab.getContent();
                 int distance = ancestorDistance(contentNode, tabContent);
-                if (distance >= 0 && distance < bestDistance) {
-                    bestDistance = distance;
+                if (distance < 0) {
+                    continue;
+                }
+                boolean selectedTab = tabPane.getSelectionModel().getSelectedItem() == tab;
+                int score = (distance * 10) + (selectedTab ? 0 : 1);
+                if (score < bestScore) {
+                    bestScore = score;
                     bestPane = tabPane;
                     bestTab = tab;
                 }

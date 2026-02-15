@@ -19,7 +19,7 @@
                 </Label>
                 <Region HBox.hgrow="ALWAYS"/>
                 <Button text="Save Changes" onAction="#handleSave" style="-fx-background-color: #27ae60; -fx-text-fill: white; -fx-font-weight: bold;"/>
-                <Button text="Close" onAction="#handleClose" style="-fx-background-color: #95a5a6; -fx-text-fill: white;"/>
+                <Button fx:id="closeButton" text="Close" onAction="#handleClose" styleClass="admin-close-button"/>
             </HBox>
         </VBox>
     </top>
@@ -28,7 +28,7 @@
         <TabPane tabClosingPolicy="UNAVAILABLE">
             
             <!-- Tab 1: General Info -->
-            <Tab text="General Info">
+            <Tab text="General Info" closable="false">
                 <ScrollPane fitToWidth="true">
                     <VBox spacing="20" style="-fx-padding: 30;">
                         <Label text="Clinic Information" style="-fx-font-size: 16; -fx-font-weight: bold; text-decoration: underline;"/>
@@ -51,7 +51,7 @@
             </Tab>
             
             <!-- Tab 2: Reports -->
-            <Tab text="Reports &amp; Branding">
+            <Tab text="Reports &amp; Branding" closable="false">
                 <ScrollPane fitToWidth="true">
                     <VBox spacing="20" style="-fx-padding: 30;">
                         <Label text="Report Customization" style="-fx-font-size: 16; -fx-font-weight: bold;"/>
@@ -80,7 +80,7 @@
             </Tab>
             
             <!-- Tab 3: Billing -->
-            <Tab text="Billing &amp; Finance">
+            <Tab text="Billing &amp; Finance" closable="false">
                 <ScrollPane fitToWidth="true">
                     <VBox spacing="20" style="-fx-padding: 30;">
                         <Label text="Currency &amp; Tax" style="-fx-font-size: 16; -fx-font-weight: bold;"/>

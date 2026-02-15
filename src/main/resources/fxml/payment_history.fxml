@@ -17,7 +17,7 @@
                 </font>
             </Label>
             <Region HBox.hgrow="ALWAYS" />
-            <Button fx:id="closeButton" text="Close" onAction="#handleClose" style="-fx-background-color: #e74c3c; -fx-text-fill: white;" />
+            <Button fx:id="closeButton" text="Close" onAction="#handleClose" styleClass="admin-close-button"/>
         </HBox>
     </top>
 
@@ -46,7 +46,6 @@
                 <Button text="Export CSV" onAction="#handleExport" style="-fx-background-color: #27ae60; -fx-text-fill: white; -fx-pref-height: 35; -fx-translate-y: 10;"/>
                 
                 <Region HBox.hgrow="ALWAYS" />
-                <Button fx:id="closeButton" text="Close" onAction="#handleClose" style="-fx-background-color: #95a5a6; -fx-text-fill: white; -fx-pref-height: 35; -fx-translate-y: 10;"/>
 
             </HBox>
             

@@ -8,7 +8,11 @@
       fx:controller="com.qdc.lims.ui.controller.CategoryManagementController"
       spacing="15" prefWidth="600" prefHeight="450" style="-fx-padding: 20;">
     
-    <Label text="Department Management" style="-fx-font-size: 20; -fx-font-weight: bold; -fx-text-fill: #2c3e50;"/>
+    <HBox alignment="CENTER_LEFT" spacing="12">
+        <Label text="Department Management" style="-fx-font-size: 20; -fx-font-weight: bold; -fx-text-fill: #2c3e50;"/>
+        <Region HBox.hgrow="ALWAYS"/>
+        <Button text="Close" onAction="#handleClose" styleClass="admin-close-button"/>
+    </HBox>
     <Label text="Manage departments used by test definitions." style="-fx-font-size: 14; -fx-text-fill: #7f8c8d;"/>
     <Separator/>
     
@@ -50,8 +54,4 @@
         </VBox>
     </HBox>
     
-    <Separator/>
-    <HBox alignment="CENTER_RIGHT">
-        <Button text="Close" onAction="#handleClose" style="-fx-background-color: #7f8c8d; -fx-text-fill: white;" prefWidth="100"/>
-    </HBox>
 </VBox>

@@ -10,10 +10,14 @@
     
     <!-- Header -->
     <top>
-        <VBox style="-fx-background-color: #9b59b6; -fx-padding: 20;">
-            <Label text="Inventory Management" style="-fx-font-size: 24; -fx-font-weight: bold; -fx-text-fill: white;"/>
-            <Label text="View stock levels and track inventory" style="-fx-font-size: 12; -fx-text-fill: #ecf0f1;"/>
-        </VBox>
+        <HBox alignment="CENTER_LEFT" spacing="15" style="-fx-background-color: #9b59b6; -fx-padding: 20;">
+            <VBox spacing="4">
+                <Label text="Inventory Management" style="-fx-font-size: 24; -fx-font-weight: bold; -fx-text-fill: white;"/>
+                <Label text="View stock levels and track inventory" style="-fx-font-size: 12; -fx-text-fill: #ecf0f1;"/>
+            </VBox>
+            <Region HBox.hgrow="ALWAYS"/>
+            <Button text="Close" onAction="#handleClose" styleClass="admin-close-button"/>
+        </HBox>
     </top>
     
     <!-- Main Content -->
@@ -97,10 +101,6 @@
                 <Button text="Manage Suppliers" onAction="#handleManageSuppliers" 
                         style="-fx-background-color: #8e44ad; -fx-text-fill: white; -fx-font-size: 14; -fx-padding: 12 30; -fx-background-radius: 5;"
                         prefWidth="200"/>
-                
-                <Button text="Close" onAction="#handleClose" 
-                        style="-fx-background-color: #e74c3c; -fx-text-fill: white; -fx-font-size: 14; -fx-padding: 12 30; -fx-background-radius: 5;"
-                        prefWidth="150"/>
             </HBox>
         </VBox>
     </center>

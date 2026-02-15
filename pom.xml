@@ -272,6 +272,7 @@
 						<module>java.sql</module>
 						<module>java.sql.rowset</module>
 						<module>java.naming</module>
+						<module>jdk.crypto.ec</module>
 						<module>jdk.jfr</module>
 						<module>jdk.unsupported</module>
 					</addModules>

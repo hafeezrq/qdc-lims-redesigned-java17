@@ -49,6 +49,8 @@ public class SystemSettingsController {
 
     @FXML
     private Label statusLabel;
+    @FXML
+    private Button closeButton;
 
     /**
      * Loads persisted settings into the form.
@@ -148,6 +150,7 @@ public class SystemSettingsController {
      */
     @FXML
     private void handleClose() {
-        com.qdc.lims.ui.util.ViewCloseUtil.closeCurrentTabOrWindow(clinicNameField);
+        com.qdc.lims.ui.util.ViewCloseUtil.closeCurrentTabOrWindow(
+                closeButton != null ? closeButton : clinicNameField);
     }
 }

@@ -26,8 +26,7 @@
                 <style>-fx-text-fill: white;</style>
             </Label>
             <Region HBox.hgrow="ALWAYS" />
-            <Button fx:id="closeButton" text="Close" onAction="#handleClose"
-                    style="-fx-background-color: #e74c3c; -fx-text-fill: white;" />
+            <Button fx:id="closeButton" text="Close" onAction="#handleClose" styleClass="admin-close-button"/>
         </HBox>
     </top>
 

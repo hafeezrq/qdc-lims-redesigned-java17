@@ -24,6 +24,10 @@
             
             <!-- Admin Menu Bar - Management & Finance Only -->
             <MenuBar>
+                <Menu text="Dashboard">
+                    <MenuItem text="Home" onAction="#handleDashboardHome"/>
+                </Menu>
+
                 <Menu text="User Management">
                     <MenuItem text="Manage Users" onAction="#handleUserManagement"/>
                 </Menu>
@@ -69,7 +73,7 @@
     <center>
         <TabPane fx:id="adminTabs" tabClosingPolicy="ALL_TABS">
             <tabs>
-                <Tab text="Dashboard Home" closable="false">
+                <Tab fx:id="dashboardHomeTab" text="Dashboard Home" closable="false">
                     <content>
                         <ScrollPane fitToWidth="true" style="-fx-background: #ecf0f1;">
                             <VBox spacing="30" style="-fx-background-color: #ecf0f1;">

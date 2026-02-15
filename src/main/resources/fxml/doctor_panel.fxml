@@ -15,8 +15,7 @@
                 <Label text="🩺 Doctor Management Panel" 
                        style="-fx-font-size: 20; -fx-font-weight: bold; -fx-text-fill: white;"/>
                 <Region HBox.hgrow="ALWAYS"/>
-                <Button text="✕ Close" onAction="#handleClose" 
-                        style="-fx-background-color: #c0392b; -fx-text-fill: white; -fx-padding: 8 15; -fx-background-radius: 5;"/>
+                <Button text="Close" onAction="#handleClose" styleClass="admin-close-button"/>
             </HBox>
             
             <!-- Search and Action Bar -->

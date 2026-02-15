@@ -27,7 +27,7 @@
                 
                 <Region HBox.hgrow="ALWAYS"/>
                 
-                <Button fx:id="closeButton" text="✕ Close" styleClass="btn-secondary" onAction="#handleClose">
+                <Button fx:id="closeButton" text="Close" styleClass="admin-close-button" onAction="#handleClose">
                     <font>
                         <Font size="14.0"/>
                     </font>

@@ -124,3 +124,36 @@
 .btn-warning:pressed {
   -fx-background-color: #ba4a00;
 }
+
+/* Admin dashboard uses menu navigation; hide inner workspace tab strip */
+#adminTabs > .tab-header-area {
+  -fx-pref-height: 0;
+  -fx-min-height: 0;
+  -fx-max-height: 0;
+  -fx-padding: 0;
+  visibility: hidden;
+}
+
+#adminTabs > .tab-header-area .headers-region,
+#adminTabs > .tab-header-area .tab-header-background {
+  -fx-opacity: 0;
+}
+
+/* Standard Close button for Admin workspace child screens */
+.admin-close-button {
+  -fx-background-color: #95a5a6;
+  -fx-text-fill: white;
+  -fx-font-size: 12px;
+  -fx-font-weight: bold;
+  -fx-padding: 8 16;
+  -fx-background-radius: 4;
+  -fx-cursor: hand;
+}
+
+.admin-close-button:hover {
+  -fx-background-color: #7f8c8d;
+}
+
+.admin-close-button:pressed {
+  -fx-background-color: #6c7a7b;
+}

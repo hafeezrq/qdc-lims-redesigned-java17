@@ -23,6 +23,8 @@
                 <Button text="Search" onAction="#handleSearch"/>
                 <Button text="New Test" onAction="#handleNewTest" style="-fx-background-color: #007bff; -fx-text-fill: white;"/>
                 <Button text="Refresh" onAction="#handleRefresh"/>
+                <Region HBox.hgrow="ALWAYS"/>
+                <Button text="Close" onAction="#handleClose" styleClass="admin-close-button"/>
             </HBox>
         </VBox>
     </top>
@@ -62,8 +64,6 @@
     <bottom>
         <HBox alignment="CENTER_LEFT" spacing="10" style="-fx-padding: 12 20 16 20;">
             <Label fx:id="statusLabel" text="Ready"/>
-            <Region HBox.hgrow="ALWAYS"/>
-            <Button text="Close" onAction="#handleClose" style="-fx-background-color: #7f8c8d; -fx-text-fill: white;" prefWidth="100"/>
         </HBox>
     </bottom>
 </BorderPane>

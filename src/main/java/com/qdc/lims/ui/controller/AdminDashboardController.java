@@ -76,6 +76,8 @@ public class AdminDashboardController {
     private ToggleButton sessionTimeoutToggle;
     @FXML
     private TabPane adminTabs;
+    @FXML
+    private Tab dashboardHomeTab;
 
     private static final String TAB_FXML_PATH_KEY = "adminTabFxmlPath";
     private boolean updateCheckInProgress = false;
@@ -176,6 +178,20 @@ public class AdminDashboardController {
     // ===========================================================================================
 
     // USER MANAGEMENT
+    @FXML
+    private void handleDashboardHome() {
+        if (adminTabs == null) {
+            return;
+        }
+        if (dashboardHomeTab != null) {
+            adminTabs.getSelectionModel().select(dashboardHomeTab);
+            return;
+        }
+        if (!adminTabs.getTabs().isEmpty()) {
+            adminTabs.getSelectionModel().select(0);
+        }
+    }
+
     @FXML
     private void handleUserRoles() {
         // Redirect to user management as roles are managed there for now

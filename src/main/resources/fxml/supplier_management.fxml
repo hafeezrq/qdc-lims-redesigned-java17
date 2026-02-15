@@ -8,7 +8,11 @@
       fx:controller="com.qdc.lims.ui.controller.SupplierManagementController"
       spacing="15" prefWidth="600" prefHeight="500" style="-fx-padding: 20;">
     
-    <Label text="Supplier Management" style="-fx-font-size: 20; -fx-font-weight: bold; -fx-text-fill: #2c3e50;"/>
+    <HBox alignment="CENTER_LEFT" spacing="12">
+        <Label text="Supplier Management" style="-fx-font-size: 20; -fx-font-weight: bold; -fx-text-fill: #2c3e50;"/>
+        <Region HBox.hgrow="ALWAYS"/>
+        <Button text="Close" onAction="#handleClose" styleClass="admin-close-button"/>
+    </HBox>
     <Separator/>
     
     <HBox spacing="15" VBox.vgrow="ALWAYS">
@@ -45,8 +49,4 @@
         </VBox>
     </HBox>
     
-    <Separator/>
-    <HBox alignment="CENTER_RIGHT">
-        <Button text="Close" onAction="#handleClose" style="-fx-background-color: #95a5a6; -fx-text-fill: white;" prefWidth="100"/>
-    </HBox>
 </VBox>

@@ -19,6 +19,7 @@ import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.geometry.Insets;
+import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
@@ -713,7 +714,29 @@ public class MainWindowController {
             } else {
                 sessionCountLabel.setText(tabCount + " active sessions");
             }
+
+            updateSessionTabHeaderVisibility(tabCount);
         });
+    }
+
+    private void updateSessionTabHeaderVisibility(int tabCount) {
+        if (sessionTabs == null) {
+            return;
+        }
+        boolean showHeader = tabCount > 1;
+        sessionTabs.applyCss();
+
+        Node headerArea = sessionTabs.lookup(".tab-header-area");
+        if (headerArea != null) {
+            headerArea.setVisible(showHeader);
+            headerArea.setManaged(showHeader);
+        }
+
+        Node headerBackground = sessionTabs.lookup(".tab-header-background");
+        if (headerBackground != null) {
+            headerBackground.setVisible(showHeader);
+            headerBackground.setManaged(showHeader);
+        }
     }
 
     /**

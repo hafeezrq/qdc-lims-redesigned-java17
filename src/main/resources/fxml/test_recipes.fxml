@@ -8,7 +8,11 @@
       fx:controller="com.qdc.lims.ui.controller.TestRecipeController"
       spacing="15" prefWidth="700" prefHeight="500" style="-fx-padding: 20;">
     
-    <Label text="Test Recipe / Consumption" style="-fx-font-size: 20; -fx-font-weight: bold; -fx-text-fill: #2c3e50;"/>
+    <HBox alignment="CENTER_LEFT" spacing="12">
+        <Label text="Test Recipe / Consumption" style="-fx-font-size: 20; -fx-font-weight: bold; -fx-text-fill: #2c3e50;"/>
+        <Region HBox.hgrow="ALWAYS"/>
+        <Button text="Close" onAction="#handleClose" styleClass="admin-close-button"/>
+    </HBox>
     <VBox spacing="6">
         <Label text="Select Test Definition:" style="-fx-font-weight: bold;"/>
         <ComboBox fx:id="testDefinitionComboBox" promptText="Choose a test" maxWidth="Infinity"/>
@@ -56,7 +60,4 @@
     
     <Separator/>
     <Label fx:id="statusLabel" text="" style="-fx-text-fill: #2c3e50; -fx-font-weight: bold;"/>
-    <HBox alignment="CENTER_RIGHT">
-        <Button text="Close" onAction="#handleClose" style="-fx-background-color: #95a5a6; -fx-text-fill: white;" prefWidth="100"/>
-    </HBox>
 </VBox>

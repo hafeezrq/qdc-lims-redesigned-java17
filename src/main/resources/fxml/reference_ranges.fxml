@@ -11,11 +11,15 @@
     
     <top>
         <VBox style="-fx-background-color: #34495e; -fx-padding: 15;" spacing="8">
-            <Label text="Reference Ranges Management" textFill="WHITE">
-                <font>
-                    <Font name="System Bold" size="18.0"/>
-                </font>
-            </Label>
+            <HBox alignment="CENTER_LEFT" spacing="10">
+                <Label text="Reference Ranges Management" textFill="WHITE">
+                    <font>
+                        <Font name="System Bold" size="18.0"/>
+                    </font>
+                </Label>
+                <Region HBox.hgrow="ALWAYS"/>
+                <Button text="Close" onAction="#handleClose" styleClass="admin-close-button"/>
+            </HBox>
             <Label fx:id="testNameLabel" text="For Test: ..." textFill="#ecf0f1">
                 <font>
                     <Font size="14.0"/>
@@ -72,8 +76,6 @@
             </VBox>
             
             <Region VBox.vgrow="ALWAYS"/>
-            
-            <Button text="Close" onAction="#handleClose" maxWidth="Infinity"/>
         </VBox>
     </right>
     

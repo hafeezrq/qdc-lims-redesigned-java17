@@ -12,7 +12,11 @@
         <Insets top="20" right="20" bottom="20" left="20"/>
     </padding>
 
-    <Label text="Backup &amp; Snapshots" style="-fx-font-size: 20; -fx-font-weight: bold;"/>
+    <HBox alignment="CENTER_LEFT" spacing="12">
+        <Label text="Backup &amp; Snapshots" style="-fx-font-size: 20; -fx-font-weight: bold;"/>
+        <Region HBox.hgrow="ALWAYS"/>
+        <Button text="Close" onAction="#handleClose" styleClass="admin-close-button"/>
+    </HBox>
     <Label text="Backups are stored in the app data folder and are encrypted. Snapshots open in a separate window." style="-fx-text-fill: #7f8c8d;" wrapText="true"/>
 
     <VBox spacing="10" style="-fx-background-color: white; -fx-padding: 15; -fx-background-radius: 10;">
@@ -62,10 +66,5 @@
     </VBox>
 
     <Label fx:id="statusLabel" wrapText="true"/>
-
-    <HBox alignment="CENTER_RIGHT">
-        <Button text="Close" onAction="#handleClose"
-                style="-fx-background-color: #95a5a6; -fx-text-fill: white; -fx-padding: 8 20;"/>
-    </HBox>
 
 </VBox>
