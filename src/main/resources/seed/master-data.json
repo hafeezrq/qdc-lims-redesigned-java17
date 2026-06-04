@@ -34,6 +34,11 @@
       "name": "Semen Analysis",
       "code": "SEM",
       "active": true
+    },
+    {
+      "name": "Blood Bank",
+      "code": "BBK",
+      "active": true
     }
   ],
   "categories": [
@@ -179,6 +184,12 @@
       "name": "Semen Analysis",
       "department": "Semen Analysis",
       "description": "Routine semen analysis profile",
+      "active": true
+    },
+    {
+      "name": "Cross-Match",
+      "department": "Blood Bank",
+      "description": "Blood cross-match and compatibility testing",
       "active": true
     }
   ],
@@ -480,6 +491,17 @@
       "category": "Blood Grouping",
       "unit": null,
       "price": 250,
+      "minRange": null,
+      "maxRange": null,
+      "active": true
+    },
+    {
+      "name": "Blood Cross-Match",
+      "shortCode": "BCROSS",
+      "department": "Blood Bank",
+      "category": "Cross-Match",
+      "unit": null,
+      "price": 0,
       "minRange": null,
       "maxRange": null,
       "active": true

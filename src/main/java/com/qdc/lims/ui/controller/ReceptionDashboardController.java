@@ -1,10 +1,12 @@
 package com.qdc.lims.ui.controller;
 
 import com.qdc.lims.service.BrandingService;
+import com.qdc.lims.service.BloodCrossMatchReportService;
 import com.qdc.lims.service.ConfigService;
 import com.qdc.lims.ui.SessionManager;
 import com.qdc.lims.ui.navigation.DashboardType;
 import com.qdc.lims.ui.util.LogoutUtil;
+import com.qdc.lims.entity.BloodCrossMatchReport;
 import com.qdc.lims.entity.LabOrder;
 import com.qdc.lims.entity.LabResult;
 import com.qdc.lims.entity.Panel;
@@ -69,6 +71,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.Set;
 import javafx.util.Duration;
 
@@ -80,6 +83,7 @@ import javafx.util.Duration;
 public class ReceptionDashboardController {
     private static final String REPORT_PATIENT_INFO_OFFSET_Y_MM = "REPORT_PATIENT_INFO_OFFSET_Y_MM";
     private static final double POINTS_PER_MM = 72.0 / 25.4;
+
     private enum ReportPaperMode {
         LETTERHEAD("Letterhead"),
         BLANK_A4("Blank A4");
@@ -100,6 +104,7 @@ public class ReceptionDashboardController {
     private final PanelRepository panelRepository;
     private final ReferenceRangeRepository referenceRangeRepository;
     private final BrandingService brandingService;
+    private final BloodCrossMatchReportService bloodCrossMatchReportService;
     private final ConfigService configService;
     private final LocaleFormatService localeFormatService;
     private final OrderCancellationService orderCancellationService;
@@ -213,6 +218,7 @@ public class ReceptionDashboardController {
     private ObservableList<LabOrder> readyOrders = FXCollections.observableArrayList();
     private ObservableList<LabOrder> pendingOrders = FXCollections.observableArrayList();
     private ObservableList<LabOrder> deliveredOrders = FXCollections.observableArrayList();
+
     private record CancellationApproval(String key, String reason) {
     }
 
@@ -221,6 +227,7 @@ public class ReceptionDashboardController {
             PanelRepository panelRepository,
             ReferenceRangeRepository referenceRangeRepository,
             BrandingService brandingService,
+            BloodCrossMatchReportService bloodCrossMatchReportService,
             ConfigService configService,
             LocaleFormatService localeFormatService,
             OrderCancellationService orderCancellationService,
@@ -230,6 +237,7 @@ public class ReceptionDashboardController {
         this.panelRepository = panelRepository;
         this.referenceRangeRepository = referenceRangeRepository;
         this.brandingService = brandingService;
+        this.bloodCrossMatchReportService = bloodCrossMatchReportService;
         this.configService = configService;
         this.localeFormatService = localeFormatService;
         this.orderCancellationService = orderCancellationService;
@@ -1567,7 +1575,8 @@ public class ReceptionDashboardController {
         Patient patient = order.getPatient();
         String patientName = patient != null && patient.getFullName() != null ? patient.getFullName() : "-";
         String patientMrn = patient != null && patient.getMrn() != null ? patient.getMrn() : "-";
-        String patientAge = patient != null ? localeFormatService.formatAge(patient.getAge(), patient.getAgeUnit()) : "-";
+        String patientAge = patient != null ? localeFormatService.formatAge(patient.getAge(), patient.getAgeUnit())
+                : "-";
         String patientGender = patient != null && patient.getGender() != null ? patient.getGender() : "-";
 
         GridPane patientInfo = new GridPane();
@@ -1589,9 +1598,9 @@ public class ReceptionDashboardController {
         patientInfo.add(createReportLabel("Gender:"), 0, row);
         patientInfo.add(createReportLabel(patientGender), 1, row++);
         patientInfo.add(createReportLabel("Order Date:"), 0, row);
-        patientInfo.add(createReportLabel(localeFormatService.formatDateTime(order.getOrderDate())), 1, row++);
+        patientInfo.add(createReportLabel(formatReportDate(order.getOrderDate())), 1, row++);
         patientInfo.add(createReportLabel("Printed:"), 0, row);
-        patientInfo.add(createReportLabel(localeFormatService.formatDateTime(LocalDateTime.now())), 1, row++);
+        patientInfo.add(createReportLabel(formatReportDate(LocalDateTime.now())), 1, row++);
         String referredBy = order.getReferringDoctor() != null && order.getReferringDoctor().getName() != null
                 ? order.getReferringDoctor().getName().trim()
                 : "";
@@ -1617,6 +1626,10 @@ public class ReceptionDashboardController {
             pageContext = addDepartmentToPages(entry.getKey(), entry.getValue(), pageContext, pages,
                     printableWidth, printableHeight, safeTopInset, bottomInset, contentWidth, availableHeight);
         }
+        if (shouldPrintBloodCrossMatch(order, selectedDepartments)) {
+            pageContext = addBloodCrossMatchReportToPages(order, pageContext, pages,
+                    printableWidth, printableHeight, safeTopInset, bottomInset, contentWidth, availableHeight);
+        }
 
         return pages;
     }
@@ -1635,6 +1648,9 @@ public class ReceptionDashboardController {
                     // report
                     if (result.getTestDefinition() != null &&
                             Boolean.TRUE.equals(result.getTestDefinition().getSkipWorklist())) {
+                        return false;
+                    }
+                    if (bloodCrossMatchReportService.isCrossMatchResult(result)) {
                         return false;
                     }
 
@@ -1663,6 +1679,116 @@ public class ReceptionDashboardController {
                 && result.getTestDefinition().getDepartment().getName() != null
                 && !result.getTestDefinition().getDepartment().getName().isBlank()) {
             return result.getTestDefinition().getDepartment().getName();
+        }
+        return "Other";
+    }
+
+    private boolean shouldPrintBloodCrossMatch(LabOrder order, List<String> selectedDepartments) {
+        if (!bloodCrossMatchReportService.isCrossMatchOrder(order)) {
+            return false;
+        }
+        if (selectedDepartments == null || selectedDepartments.isEmpty()) {
+            return true;
+        }
+        return order.getResults() != null && order.getResults().stream()
+                .filter(bloodCrossMatchReportService::isCrossMatchResult)
+                .map(this::resolveDepartmentName)
+                .anyMatch(selectedDepartments::contains);
+    }
+
+    private PageContext addBloodCrossMatchReportToPages(LabOrder order, PageContext pageContext,
+            List<StackPane> pages, double printableWidth, double printableHeight,
+            double topInset, double bottomInset, double contentWidth, double availableHeight) {
+        Optional<BloodCrossMatchReport> report = bloodCrossMatchReportService.findByOrderId(order.getId());
+        if (report.isEmpty()) {
+            return pageContext;
+        }
+        VBox section = buildBloodCrossMatchSection(report.get(), contentWidth);
+        double requiredHeight = measureNodeHeight(section, contentWidth);
+        if (requiredHeight <= pageContext.availableHeight && pageContext.remainingHeight < requiredHeight) {
+            pageContext = newPage(pages, printableWidth, printableHeight, topInset, bottomInset, contentWidth,
+                    availableHeight);
+        }
+        addNodeToPage(pageContext, section, contentWidth);
+        return pageContext;
+    }
+
+    private VBox buildBloodCrossMatchSection(BloodCrossMatchReport report, double contentWidth) {
+        VBox section = new VBox(6);
+        section.setPrefWidth(contentWidth);
+        section.getChildren().add(createDepartmentLabel("Blood Cross-Match"));
+
+        GridPane details = createTwoColumnReportTable(contentWidth);
+        int row = 0;
+        addReportFieldRow(details, row++, "Recipient's Name:", report.getRecipientName());
+        addReportFieldRow(details, row++, "Donor's Name:", report.getDonorName());
+        addReportFieldRow(details, row++, "Blood Bag No.:", report.getBloodBagNo());
+        addReportFieldRow(details, row++, "Recipient's ABO Group:", report.getRecipientAboGroup());
+        addReportFieldRow(details, row++, "Recipient's Rhesus Group:", report.getRecipientRhesusGroup());
+        addReportFieldRow(details, row++, "Donor's ABO Group:", report.getDonorAboGroup());
+        addReportFieldRow(details, row++, "Donor's Rhesus Group:", report.getDonorRhesusGroup());
+        section.getChildren().add(details);
+
+        section.getChildren().add(createSpacer(6));
+        section.getChildren().add(createDepartmentLabel("Donor's Tests"));
+        GridPane donorTests = createTwoColumnReportTable(contentWidth);
+        addReportFieldRow(donorTests, 0, "HBsAg", report.getHbsAg());
+        addReportFieldRow(donorTests, 1, "HCV", report.getHcv());
+        addReportFieldRow(donorTests, 2, "HIV", report.getHiv());
+        addReportFieldRow(donorTests, 3, "V.D.R.L", report.getVdrl());
+        addReportFieldRow(donorTests, 4, "Malarial Parasites", report.getMalarialParasites());
+        section.getChildren().add(donorTests);
+
+        section.getChildren().add(createSpacer(6));
+        section.getChildren().add(createDepartmentLabel("Compatibility Report"));
+        GridPane compatibility = createTwoColumnReportTable(contentWidth);
+        addReportFieldRow(compatibility, 0, "In Saline phase", report.getSalinePhase());
+        addReportFieldRow(compatibility, 1, "In Albumin phase", report.getAlbuminPhase());
+        section.getChildren().add(compatibility);
+
+        section.getChildren().add(createSpacer(6));
+        Label comments = createReportLabel("Comments: " + safeReportValue(report.getComments()));
+        comments.setWrapText(true);
+        section.getChildren().add(comments);
+        section.getChildren().add(createSpacer(4));
+        return section;
+    }
+
+    private GridPane createTwoColumnReportTable(double contentWidth) {
+        GridPane table = new GridPane();
+        table.setHgap(10);
+        table.setVgap(2);
+        table.setPrefWidth(contentWidth);
+        ColumnConstraints labelCol = new ColumnConstraints();
+        labelCol.setPercentWidth(42);
+        ColumnConstraints valueCol = new ColumnConstraints();
+        valueCol.setPercentWidth(58);
+        table.getColumnConstraints().addAll(labelCol, valueCol);
+        return table;
+    }
+
+    private void addReportFieldRow(GridPane table, int row, String label, String value) {
+        Label labelNode = createReportLabel(label);
+        labelNode.setStyle("-fx-font-size: 9; -fx-font-weight: bold;");
+        table.add(labelNode, 0, row);
+        table.add(createReportLabel(safeReportValue(value)), 1, row);
+    }
+
+    private String safeReportValue(String value) {
+        return value != null && !value.isBlank() ? value : "-";
+    }
+
+    private String formatReportDate(LocalDateTime dateTime) {
+        return dateTime != null ? localeFormatService.formatDate(dateTime.toLocalDate()) : "-";
+    }
+
+    private String resolveCategoryName(LabResult result) {
+        if (result != null
+                && result.getTestDefinition() != null
+                && result.getTestDefinition().getCategory() != null
+                && result.getTestDefinition().getCategory().getName() != null
+                && !result.getTestDefinition().getCategory().getName().isBlank()) {
+            return result.getTestDefinition().getCategory().getName();
         }
         return "Other";
     }
@@ -1827,14 +1953,23 @@ public class ReceptionDashboardController {
         addTableHeader(table);
 
         int rowIndex = 1;
-        for (LabResult result : departmentResults) {
-            addTableRow(table, rowIndex++, result, departmentName);
+        Map<String, List<LabResult>> byCategory = groupResultsByCategory(departmentResults);
+        for (Map.Entry<String, List<LabResult>> entry : byCategory.entrySet()) {
+            addCategoryRow(table, rowIndex++, entry.getKey());
+            for (LabResult result : entry.getValue()) {
+                addTableRow(table, rowIndex++, result, departmentName);
+            }
         }
 
         Region spacer = createSpacer(4);
         VBox section = new VBox(2, deptLabel, table, spacer);
         section.setPrefWidth(contentWidth);
         return section;
+    }
+
+    private Map<String, List<LabResult>> groupResultsByCategory(List<LabResult> results) {
+        return results.stream()
+                .collect(Collectors.groupingBy(this::resolveCategoryName, LinkedHashMap::new, Collectors.toList()));
     }
 
     private PageContext addLargeDepartmentWithRowSplit(String departmentName, List<LabResult> departmentResults,
@@ -1854,23 +1989,45 @@ public class ReceptionDashboardController {
         addNodeToPage(pageContext, table, contentWidth);
 
         int rowIndex = 1;
-        for (LabResult result : departmentResults) {
-            List<Node> rowNodes = addTableRow(table, rowIndex, result, departmentName);
+        Map<String, List<LabResult>> byCategory = groupResultsByCategory(departmentResults);
+        for (Map.Entry<String, List<LabResult>> entry : byCategory.entrySet()) {
+            Label categoryLabel = createCategoryTableLabel(entry.getKey());
+            List<Node> categoryRowNodes = addCategoryRow(table, rowIndex, categoryLabel);
             rowIndex++;
-            if (!fitsCurrentPage(pageContext, contentWidth)) {
-                removeRowNodes(table, rowNodes);
-                rowIndex--;
+            boolean printedResultInCategory = false;
 
-                pageContext = newPage(pages, printableWidth, printableHeight, topInset, bottomInset, contentWidth,
-                        availableHeight);
-                deptLabel = createDepartmentLabel(departmentName);
-                addNodeToPage(pageContext, deptLabel, contentWidth);
-                table = createResultsTable(contentWidth);
-                addTableHeader(table);
-                addNodeToPage(pageContext, table, contentWidth);
-
-                rowNodes = addTableRow(table, rowIndex, result, departmentName);
+            for (LabResult result : entry.getValue()) {
+                List<Node> rowNodes = addTableRow(table, rowIndex, result, departmentName);
                 rowIndex++;
+                if (!fitsCurrentPage(pageContext, contentWidth)) {
+                    removeRowNodes(table, rowNodes);
+                    rowIndex--;
+
+                    boolean moveCategoryHeader = !printedResultInCategory && categoryRowNodes.stream()
+                            .allMatch(table.getChildren()::contains);
+                    if (moveCategoryHeader) {
+                        removeRowNodes(table, categoryRowNodes);
+                        rowIndex--;
+                    }
+
+                    pageContext = newPage(pages, printableWidth, printableHeight, topInset, bottomInset, contentWidth,
+                            availableHeight);
+                    deptLabel = createDepartmentLabel(departmentName);
+                    addNodeToPage(pageContext, deptLabel, contentWidth);
+                    table = createResultsTable(contentWidth);
+                    addTableHeader(table);
+                    addNodeToPage(pageContext, table, contentWidth);
+
+                    if (moveCategoryHeader) {
+                        categoryLabel = createCategoryTableLabel(entry.getKey());
+                        categoryRowNodes = addCategoryRow(table, rowIndex, categoryLabel);
+                        rowIndex++;
+                    }
+
+                    addTableRow(table, rowIndex, result, departmentName);
+                    rowIndex++;
+                }
+                printedResultInCategory = true;
             }
         }
 
@@ -1905,6 +2062,16 @@ public class ReceptionDashboardController {
         table.add(resultHeader, 1, 0);
         table.add(unitHeader, 2, 0);
         table.add(refHeader, 3, 0);
+    }
+
+    private List<Node> addCategoryRow(GridPane table, int rowIndex, String categoryName) {
+        return addCategoryRow(table, rowIndex, createCategoryTableLabel(categoryName));
+    }
+
+    private List<Node> addCategoryRow(GridPane table, int rowIndex, Label categoryLabel) {
+        GridPane.setMargin(categoryLabel, new Insets(rowIndex == 1 ? 3 : 7, 0, 2, 0));
+        table.add(categoryLabel, 0, rowIndex, 4, 1);
+        return List.of(categoryLabel);
     }
 
     private List<Node> addTableRow(GridPane table, int rowIndex, LabResult result, String departmentName) {
@@ -1986,11 +2153,15 @@ public class ReceptionDashboardController {
         // 3. Positioning baseline inside the printable area.
         // This page is already sized to printable bounds, so offsets should be
         // applied directly instead of subtracting printer hardware margins.
-        // Target absolute 0.5" from the physical paper top by compensating for
-        // printer-reported top margin (printable-area origin).
-        double appliedTopMargin = (36.0 - pageLayout.getTopMargin()) + resolvePatientInfoOffsetYPoints()
-                - (10.0 * POINTS_PER_MM);
-        appliedTopMargin = Math.max(-(5.0 * POINTS_PER_MM), appliedTopMargin);
+        // Calculate top margin from physical top target (15mm) while compensating
+        // for printer hardware top margin (printable-area origin).
+        double targetTopMm = 15.0;
+        double hardwareTopMarginPts = pageLayout.getTopMargin();
+        double appliedTopMargin = (targetTopMm * POINTS_PER_MM) - hardwareTopMarginPts;
+        appliedTopMargin += resolvePatientInfoOffsetYPoints();
+        // Safety: never cross printable top boundary (prevents clipping of patient
+        // name/top border).
+        appliedTopMargin = Math.max(0.0, appliedTopMargin);
         // Keep X anchoring device-independent so preview and Print-to-PDF stay
         // aligned even when printer drivers report different hardware margins.
         double appliedRightMargin = Math.max(0.0, printableWidth - patientLeftEdgePts - boxWidth);
@@ -2212,6 +2383,14 @@ public class ReceptionDashboardController {
     private Label createDepartmentLabel(String text) {
         Label label = new Label(text);
         label.setStyle("-fx-font-weight: bold; -fx-underline: true; -fx-font-size: 10;");
+        return label;
+    }
+
+    private Label createCategoryTableLabel(String text) {
+        Label label = new Label(text);
+        label.setMaxWidth(Double.MAX_VALUE);
+        label.setPadding(new Insets(1, 0, 1, 0));
+        label.setStyle("-fx-font-weight: bold; -fx-font-size: 10; -fx-underline: true; -fx-text-fill: #1f2d3d;");
         return label;
     }
 

@@ -1,10 +1,12 @@
 package com.qdc.lims.ui.controller;
 
+import com.qdc.lims.entity.BloodCrossMatchReport;
 import com.qdc.lims.entity.LabOrder;
 import com.qdc.lims.entity.LabResult;
 import com.qdc.lims.entity.ReferenceRange;
 import com.qdc.lims.entity.TestDefinition;
 import com.qdc.lims.repository.LabOrderRepository;
+import com.qdc.lims.service.BloodCrossMatchReportService;
 import com.qdc.lims.repository.ReferenceRangeRepository;
 import com.qdc.lims.service.LocaleFormatService;
 import com.qdc.lims.service.ResultService;
@@ -13,6 +15,7 @@ import com.qdc.lims.util.LabResultDisplayOrder;
 import javafx.application.Platform;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
+import javafx.geometry.Insets;
 import javafx.fxml.FXML;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
@@ -25,9 +28,14 @@ import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TablePosition;
 import javafx.scene.control.TableView;
+import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.scene.control.TextInputDialog;
 import javafx.scene.input.KeyCode;
+import javafx.scene.layout.ColumnConstraints;
+import javafx.scene.layout.GridPane;
+import javafx.scene.layout.Priority;
+import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 import org.springframework.stereotype.Component;
 
@@ -68,6 +76,7 @@ public class ResultEntryController {
 
     private final LabOrderRepository orderRepository;
     private final ResultService resultService;
+    private final BloodCrossMatchReportService bloodCrossMatchReportService;
     private final TestResultOptionService testResultOptionService;
     private final LocaleFormatService localeFormatService;
     private final ReferenceRangeRepository referenceRangeRepository;
@@ -78,17 +87,35 @@ public class ResultEntryController {
     private final Map<Tab, TableView<LabResult>> categoryTabTableMap = new LinkedHashMap<>();
     private final Map<Long, List<String>> resultOptionsByTestId = new LinkedHashMap<>();
     private TableView<LabResult> activeResultsTable;
+    private BloodCrossMatchReport currentCrossMatchReport;
+    private TextField crossRecipientNameField;
+    private TextField crossDonorNameField;
+    private TextField crossBloodBagNoField;
+    private ComboBox<String> crossRecipientAboCombo;
+    private ComboBox<String> crossRecipientRhesusCombo;
+    private ComboBox<String> crossDonorAboCombo;
+    private ComboBox<String> crossDonorRhesusCombo;
+    private ComboBox<String> crossHbsAgCombo;
+    private ComboBox<String> crossHcvCombo;
+    private ComboBox<String> crossHivCombo;
+    private ComboBox<String> crossVdrlCombo;
+    private ComboBox<String> crossMalarialParasitesCombo;
+    private ComboBox<String> crossSalinePhaseCombo;
+    private ComboBox<String> crossAlbuminPhaseCombo;
+    private TextArea crossCommentsArea;
 
     // Flag to prevent selection listener loops during programmatic navigation.
     private boolean adjustingSelection = false;
 
     public ResultEntryController(LabOrderRepository orderRepository,
             ResultService resultService,
+            BloodCrossMatchReportService bloodCrossMatchReportService,
             TestResultOptionService testResultOptionService,
             LocaleFormatService localeFormatService,
             ReferenceRangeRepository referenceRangeRepository) {
         this.orderRepository = orderRepository;
         this.resultService = resultService;
+        this.bloodCrossMatchReportService = bloodCrossMatchReportService;
         this.testResultOptionService = testResultOptionService;
         this.localeFormatService = localeFormatService;
         this.referenceRangeRepository = referenceRangeRepository;
@@ -516,9 +543,18 @@ public class ResultEntryController {
                 : currentOrder.getResults().stream()
                         .sorted(LabResultDisplayOrder.comparator())
                         .toList();
+        List<LabResult> regularResults = sortedResults.stream()
+                .filter(result -> !bloodCrossMatchReportService.isCrossMatchResult(result))
+                .toList();
 
-        loadResultOptions(sortedResults);
-        buildDepartmentTabs(sortedResults);
+        loadResultOptions(regularResults);
+        buildDepartmentTabs(regularResults);
+        if (bloodCrossMatchReportService.isCrossMatchOrder(currentOrder)) {
+            currentCrossMatchReport = bloodCrossMatchReportService.getOrCreateForOrder(currentOrder);
+            addBloodCrossMatchTab();
+        } else {
+            currentCrossMatchReport = null;
+        }
         forceInitialResultCellFocus();
     }
 
@@ -603,8 +639,150 @@ public class ResultEntryController {
         }
     }
 
+    private void addBloodCrossMatchTab() {
+        VBox content = new VBox(14);
+        content.setPadding(new Insets(14));
+        content.setStyle("-fx-background-color: white;");
+
+        Label title = new Label("Blood Cross-Match");
+        title.setStyle("-fx-font-size: 16; -fx-font-weight: bold;");
+
+        GridPane detailGrid = createCrossMatchGrid();
+        int row = 0;
+        crossRecipientNameField = createTextField(valueOrDefault(currentCrossMatchReport.getRecipientName(),
+                currentOrder.getPatient() != null ? currentOrder.getPatient().getFullName() : ""));
+        crossDonorNameField = createTextField(currentCrossMatchReport.getDonorName());
+        crossBloodBagNoField = createTextField(currentCrossMatchReport.getBloodBagNo());
+        crossRecipientAboCombo = createCombo(currentCrossMatchReport.getRecipientAboGroup(), "A", "B", "AB", "O");
+        crossRecipientRhesusCombo = createCombo(currentCrossMatchReport.getRecipientRhesusGroup(), "Positive",
+                "Negative");
+        crossDonorAboCombo = createCombo(currentCrossMatchReport.getDonorAboGroup(), "A", "B", "AB", "O");
+        crossDonorRhesusCombo = createCombo(currentCrossMatchReport.getDonorRhesusGroup(), "Positive", "Negative");
+
+        addCrossMatchField(detailGrid, row++, "Recipient Name", crossRecipientNameField);
+        addCrossMatchField(detailGrid, row++, "Donor Name", crossDonorNameField);
+        addCrossMatchField(detailGrid, row++, "Blood Bag No.", crossBloodBagNoField);
+        addCrossMatchField(detailGrid, row++, "Recipient ABO Group", crossRecipientAboCombo);
+        addCrossMatchField(detailGrid, row++, "Recipient Rhesus Group", crossRecipientRhesusCombo);
+        addCrossMatchField(detailGrid, row++, "Donor ABO Group", crossDonorAboCombo);
+        addCrossMatchField(detailGrid, row++, "Donor Rhesus Group", crossDonorRhesusCombo);
+
+        Label donorTestsTitle = new Label("Donor Tests");
+        donorTestsTitle.setStyle("-fx-font-size: 14; -fx-font-weight: bold;");
+        GridPane donorGrid = createCrossMatchGrid();
+        crossHbsAgCombo = createCombo(currentCrossMatchReport.getHbsAg(), "Negative", "Positive", "Reactive",
+                "Non-Reactive");
+        crossHcvCombo = createCombo(currentCrossMatchReport.getHcv(), "Negative", "Positive", "Reactive",
+                "Non-Reactive");
+        crossHivCombo = createCombo(currentCrossMatchReport.getHiv(), "Negative", "Positive", "Reactive",
+                "Non-Reactive");
+        crossVdrlCombo = createCombo(currentCrossMatchReport.getVdrl(), "Negative", "Positive", "Reactive",
+                "Non-Reactive");
+        crossMalarialParasitesCombo = createCombo(currentCrossMatchReport.getMalarialParasites(), "Not Seen", "Seen",
+                "Negative", "Positive");
+        addCrossMatchField(donorGrid, 0, "HBsAg", crossHbsAgCombo);
+        addCrossMatchField(donorGrid, 1, "HCV", crossHcvCombo);
+        addCrossMatchField(donorGrid, 2, "HIV", crossHivCombo);
+        addCrossMatchField(donorGrid, 3, "V.D.R.L", crossVdrlCombo);
+        addCrossMatchField(donorGrid, 4, "Malarial Parasites", crossMalarialParasitesCombo);
+
+        Label compatibilityTitle = new Label("Compatibility Report");
+        compatibilityTitle.setStyle("-fx-font-size: 14; -fx-font-weight: bold;");
+        GridPane compatibilityGrid = createCrossMatchGrid();
+        crossSalinePhaseCombo = createCombo(currentCrossMatchReport.getSalinePhase(), "Compatible", "Incompatible");
+        crossAlbuminPhaseCombo = createCombo(currentCrossMatchReport.getAlbuminPhase(), "Compatible", "Incompatible");
+        addCrossMatchField(compatibilityGrid, 0, "In Saline phase", crossSalinePhaseCombo);
+        addCrossMatchField(compatibilityGrid, 1, "In Albumin phase", crossAlbuminPhaseCombo);
+
+        crossCommentsArea = new TextArea(valueOrDefault(currentCrossMatchReport.getComments(), ""));
+        crossCommentsArea.setPrefRowCount(3);
+        crossCommentsArea.setWrapText(true);
+        crossCommentsArea.setPromptText("Comments");
+
+        content.getChildren().addAll(title, detailGrid, donorTestsTitle, donorGrid, compatibilityTitle,
+                compatibilityGrid, new Label("Comments"), crossCommentsArea);
+
+        Tab tab = new Tab("Blood Cross-Match", content);
+        tab.setClosable(false);
+        departmentTabPane.getTabs().add(tab);
+    }
+
+    private GridPane createCrossMatchGrid() {
+        GridPane grid = new GridPane();
+        grid.setHgap(12);
+        grid.setVgap(8);
+        ColumnConstraints labelColumn = new ColumnConstraints();
+        labelColumn.setMinWidth(180);
+        ColumnConstraints fieldColumn = new ColumnConstraints();
+        fieldColumn.setHgrow(Priority.ALWAYS);
+        grid.getColumnConstraints().addAll(labelColumn, fieldColumn);
+        return grid;
+    }
+
+    private void addCrossMatchField(GridPane grid, int row, String labelText, Node field) {
+        Label label = new Label(labelText + ":");
+        label.setStyle("-fx-font-weight: bold;");
+        grid.add(label, 0, row);
+        grid.add(field, 1, row);
+        GridPane.setHgrow(field, Priority.ALWAYS);
+    }
+
+    private TextField createTextField(String value) {
+        TextField field = new TextField(valueOrDefault(value, ""));
+        field.setMaxWidth(Double.MAX_VALUE);
+        return field;
+    }
+
+    private ComboBox<String> createCombo(String value, String... options) {
+        ComboBox<String> comboBox = new ComboBox<>(FXCollections.observableArrayList(options));
+        comboBox.setEditable(true);
+        comboBox.setMaxWidth(Double.MAX_VALUE);
+        if (value != null && !value.isBlank()) {
+            comboBox.setValue(value);
+        }
+        return comboBox;
+    }
+
+    private BloodCrossMatchReport readBloodCrossMatchForm() {
+        BloodCrossMatchReport form = new BloodCrossMatchReport();
+        form.setRecipientName(textValue(crossRecipientNameField));
+        form.setDonorName(textValue(crossDonorNameField));
+        form.setBloodBagNo(textValue(crossBloodBagNoField));
+        form.setRecipientAboGroup(comboValue(crossRecipientAboCombo));
+        form.setRecipientRhesusGroup(comboValue(crossRecipientRhesusCombo));
+        form.setDonorAboGroup(comboValue(crossDonorAboCombo));
+        form.setDonorRhesusGroup(comboValue(crossDonorRhesusCombo));
+        form.setHbsAg(comboValue(crossHbsAgCombo));
+        form.setHcv(comboValue(crossHcvCombo));
+        form.setHiv(comboValue(crossHivCombo));
+        form.setVdrl(comboValue(crossVdrlCombo));
+        form.setMalarialParasites(comboValue(crossMalarialParasitesCombo));
+        form.setSalinePhase(comboValue(crossSalinePhaseCombo));
+        form.setAlbuminPhase(comboValue(crossAlbuminPhaseCombo));
+        form.setComments(crossCommentsArea != null ? crossCommentsArea.getText() : "");
+        return form;
+    }
+
+    private String textValue(TextField field) {
+        return field != null && field.getText() != null ? field.getText().trim() : "";
+    }
+
+    private String comboValue(ComboBox<String> comboBox) {
+        return comboBox != null && comboBox.getValue() != null ? comboBox.getValue().trim() : "";
+    }
+
+    private String valueOrDefault(String value, String defaultValue) {
+        return value != null && !value.isBlank() ? value : defaultValue;
+    }
+
     private void focusFirstResultCell() {
         if (resultTables.isEmpty()) {
+            if (!departmentTabPane.getTabs().isEmpty()) {
+                departmentTabPane.getSelectionModel().select(0);
+                if (crossRecipientNameField != null) {
+                    crossRecipientNameField.requestFocus();
+                }
+            }
             return;
         }
 
@@ -782,6 +960,23 @@ public class ResultEntryController {
                 }
             }
         }
+        if (currentCrossMatchReport != null && crossRecipientNameField != null) {
+            BloodCrossMatchReport form = readBloodCrossMatchForm();
+            return !textValue(crossDonorNameField).isEmpty()
+                    || !textValue(crossBloodBagNoField).isEmpty()
+                    || !comboValue(crossRecipientAboCombo).isEmpty()
+                    || !comboValue(crossRecipientRhesusCombo).isEmpty()
+                    || !comboValue(crossDonorAboCombo).isEmpty()
+                    || !comboValue(crossDonorRhesusCombo).isEmpty()
+                    || !comboValue(crossHbsAgCombo).isEmpty()
+                    || !comboValue(crossHcvCombo).isEmpty()
+                    || !comboValue(crossHivCombo).isEmpty()
+                    || !comboValue(crossVdrlCombo).isEmpty()
+                    || !comboValue(crossMalarialParasitesCombo).isEmpty()
+                    || !comboValue(crossSalinePhaseCombo).isEmpty()
+                    || !comboValue(crossAlbuminPhaseCombo).isEmpty()
+                    || (form.getComments() != null && !form.getComments().trim().isEmpty());
+        }
         return false;
     }
 
@@ -918,9 +1113,15 @@ public class ResultEntryController {
             int enteredCount = (int) allResults.stream()
                     .filter(r -> r.getResultValue() != null && !r.getResultValue().trim().isEmpty())
                     .count();
+            BloodCrossMatchReport crossMatchForm = currentCrossMatchReport != null ? readBloodCrossMatchForm() : null;
+            boolean hasCrossMatchForm = crossMatchForm != null;
 
-            if (enteredCount == 0) {
+            if (enteredCount == 0 && !hasCrossMatchForm) {
                 showError("No results to save.");
+                return;
+            }
+            if (hasCrossMatchForm && !bloodCrossMatchReportService.isComplete(crossMatchForm)) {
+                showError("Complete all Blood Cross-Match fields before saving.");
                 return;
             }
 
@@ -938,12 +1139,29 @@ public class ResultEntryController {
                     showError("Edit reason is required.");
                     return;
                 }
-                currentOrder.setResults(new ArrayList<>(allResults));
-                resultService.saveEditedResults(currentOrder, editReason);
+                if (!allResults.isEmpty()) {
+                    currentOrder.setResults(new ArrayList<>(allResults));
+                    try {
+                        resultService.saveEditedResults(currentOrder, editReason);
+                    } catch (RuntimeException ex) {
+                        if (!hasCrossMatchForm || ex.getMessage() == null
+                                || !ex.getMessage().contains("No result changes detected")) {
+                            throw ex;
+                        }
+                    }
+                }
+                if (hasCrossMatchForm) {
+                    bloodCrossMatchReportService.saveForOrder(currentOrder, crossMatchForm, editReason);
+                }
                 showSuccess("Results corrected!");
             } else {
-                currentOrder.setResults(new ArrayList<>(allResults));
-                resultService.saveResultsFromForm(currentOrder);
+                if (!allResults.isEmpty()) {
+                    currentOrder.setResults(new ArrayList<>(allResults));
+                    resultService.saveResultsFromForm(currentOrder);
+                }
+                if (hasCrossMatchForm) {
+                    bloodCrossMatchReportService.saveForOrder(currentOrder, crossMatchForm);
+                }
                 showSuccess("Results saved!");
             }
 
